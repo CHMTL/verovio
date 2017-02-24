@@ -1,4 +1,4 @@
-This repository is for development of CHMTL Verovio, a library and standalone tool for generating mensural notation. We're using the _develop-mensural_ branch for ??. Th below information is from the README for the standard version of Verovio.
+This repository is for development of CHMTL Verovio, a library and standalone tool for generating mensural notation. To facilitate working with the developers of standard Verovio, we're using the _develop-mensural_ branch for development instead of the usual master branch. The below information is from the README for the standard version of Verovio.
 
 ----
 
