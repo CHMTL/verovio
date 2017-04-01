@@ -364,6 +364,8 @@ protected:
     void DrawMensurReversedHalfCircle(DeviceContext *dc, int x, int yy, Staff *staff);
     void DrawMensurSlash(DeviceContext *dc, int x, int yy, Staff *staff);
     void DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, Layer *layer, Staff *staff);
+    void DrawMaximaToLongaRest(DeviceContext *dc, int x, int y, LayerElement *element, Staff *staff);
+    void DrawRestLines(DeviceContext *dc, int x, int y_top, int y_bottom, int drawingDur);
     void CalculateLigaturePosX(LayerElement *element, Layer *layer, Staff *staff);
     void DrawProportFigures(DeviceContext *dc, int x, int y, int num, int numBase, Staff *staff);
     ///@}

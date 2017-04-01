@@ -81,7 +81,7 @@ void display_usage()
 
     cerr << " -f, --format=INPUT_FORMAT  Select input format: darms, mei, pae, xml (default is pae)" << endl;
 
-    cerr << " -h, --page-height=HEIGHT   Specify the page height (default is " << DEFAULT_PAGE_HEIGHT << ")" << endl;
+    cerr << " -h, --page-height=HEIGHT   Specify the page height, in 1/10 mm. (default is " << DEFAULT_PAGE_HEIGHT << ")" << endl;
 
     cerr << " -o, --outfile=FILE_NAME    Output file name (use \"-\" for standard output)" << endl;
 
@@ -94,7 +94,7 @@ void display_usage()
 
     cerr << " -v, --version              Display the version number" << endl;
 
-    cerr << " -w, --page-width=WIDTH     Specify the page width (default is " << DEFAULT_PAGE_WIDTH << ")" << endl;
+    cerr << " -w, --page-width=WIDTH     Specify the page width, in 1/10 mm. (default is " << DEFAULT_PAGE_WIDTH << ")" << endl;
 
     // Options with long forms only
     cerr << endl << "Additional options" << endl;

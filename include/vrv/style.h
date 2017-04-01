@@ -38,7 +38,7 @@ namespace vrv {
 #define MIN_PAGE_WIDTH 100
 #define MAX_PAGE_WIDTH 60000
 
-#define DEFAULT_BARLINE_WIDTH 3.0
+#define DEFAULT_BARLINE_WIDTH 2.0       // ??This needs attention! 3.0 is too thick.
 #define MIN_BARLINE_WIDTH 1.0
 #define MAX_BARLINE_WIDTH 8.0
 
@@ -174,11 +174,28 @@ namespace vrv {
 
 /* Style parameters for mensural notation */
 // Ratios of mensural notehead, accidental, aug. dot size to CMN for the same staff size
+
+#define CHMTL
+#ifdef CHMTL
+
+// In the absence of a proper mensural font, these values give relatively good results.
+#define TEMP_MNOTEHEAD_SIZE_FACTOR 0.80
+#define TEMP_MACCID_SIZE_FACTOR 0.80
+#define TEMP_MAUGDOT_SIZE_FACTOR 0.60
+// Width of the minima diamond relative to its height (black notation only)
+#define TEMP_MINIMA_WIDTH_FACTOR 0.60
+
+#else
+
+// These values give results that look like what standard Verovio does.
 #define TEMP_MNOTEHEAD_SIZE_FACTOR 1.0
 #define TEMP_MACCID_SIZE_FACTOR 1.0
 #define TEMP_MAUGDOT_SIZE_FACTOR 1.0
-// Width of the minima diamond relative to its height
+// Width of the minima diamond relative to its height (black notation only)
 #define TEMP_MINIMA_WIDTH_FACTOR 1.0
+
+#endif
+
 // Size of mensuration sign circle relative to space between staff lines
 #define MSIGN_CIRCLE_DIAM 1.7
 // Vertical position of center of mensuration sign as distance below top of the staff
