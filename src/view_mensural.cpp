@@ -219,6 +219,7 @@ void View::DrawMensuralNote(DeviceContext *dc, LayerElement *element, Layer *lay
         // GetDrawingY() is irrelevant for maxima and longa, which should extend down from the
         // top of the staff (y=0) to the bottom.
         int y = element->GetDrawingY();
+        //int y = 0;
         
         if (drawingDur > DUR_2) {
             x -= m_doc->GetGlyphWidth(SMUFL_E0A3_noteheadHalf, staff->m_drawingStaffSize, drawingCueSize) / 2;
@@ -226,16 +227,16 @@ void View::DrawMensuralNote(DeviceContext *dc, LayerElement *element, Layer *lay
         
         int zero = 0;
         switch (drawingDur) {
-            //case DUR_MX: DrawMaximaToLongaRest(dc, x, (int)0, element, staff); return;
+            case DUR_MX: DrawMaximaToLongaRest(dc, x, (int)0, element, staff); return;
             //case DUR_MX: DrawMaximaToLongaRest(dc, x, zero, element, staff); return;
-            case DUR_MX: DrawMaximaToLongaRest(dc, x, y, element, staff); return;
+            //case DUR_MX: DrawMaximaToLongaRest(dc, x, y, element, staff); return;
             //case DUR_MX: DrawMaximaToLongaRest(dc, x, element, staff); return;
                 //charCode = SMUFL_E9F0_mensuralRestMaxima; break;
-            //case DUR_LG: DrawMaximaToLongaRest(dc, x, 0, element, staff); return;
+            case DUR_LG: DrawMaximaToLongaRest(dc, x, 0, element, staff); return;
             //case DUR_LG: DrawMaximaToLongaRest(dc, x, zero+20, element, staff); return;
             //case DUR_LG: DrawMaximaToLongaRest(dc, x, y+(20-y), element, staff); return;
             //case DUR_LG: DrawMaximaToLongaRest(dc, x, -30, element, staff); return;
-            case DUR_LG: DrawMaximaToLongaRest(dc, x, y, element, staff); return;
+            //case DUR_LG: DrawMaximaToLongaRest(dc, x, y, element, staff); return;
             //case DUR_LG: DrawMaximaToLongaRest(dc, x, element, staff); return;
                 //charCode = SMUFL_E9F1_mensuralRestLongaPerfecta; break;
             case DUR_BR: charCode = SMUFL_E9F3_mensuralRestBrevis; break;
@@ -659,7 +660,7 @@ void View::DrawRestLines(DeviceContext *dc, int x, int y_top, int y_bottom, int 
     
         x2 -= restLineWidth;
         DrawVerticalLine(dc, y_top, y_bottom, x, restLineWidth);
-        DrawVerticalLine(dc, 50, y_bottom-y_top, x2, restLineWidth);
+        DrawVerticalLine(dc, y_top, y_bottom, x2, restLineWidth);
     }
     else
         DrawVerticalLine(dc, y_top+400, y_bottom+420, x, restLineWidth);
