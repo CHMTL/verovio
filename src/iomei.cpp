@@ -2611,6 +2611,7 @@ bool MeiInput::ReadMeiLigature(Object *parent, pugi::xml_node ligature)
     vrvLigature->ReadStems(ligature);
     vrvLigature->ReadStemsCmn(ligature);
     vrvLigature->ReadTiepresent(ligature);
+    //vrvLigature->ReadForm(ligature);
 
     parent->AddChild(vrvLigature);
     return ReadMeiLayerChildren(vrvLigature, ligature, vrvLigature);
