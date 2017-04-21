@@ -10,6 +10,8 @@
 
 namespace vrv {
 
+#define CHMTL
+    
 //----------------------------------------------------------------------------
 // Default layout values
 //----------------------------------------------------------------------------
@@ -38,7 +40,11 @@ namespace vrv {
 #define MIN_PAGE_WIDTH 100
 #define MAX_PAGE_WIDTH 60000
 
-#define DEFAULT_BARLINE_WIDTH 2.0       // ??This needs attention! 3.0 is too thick.
+#ifdef CHMTL
+#define DEFAULT_BARLINE_WIDTH 1.5
+#else
+#define DEFAULT_BARLINE_WIDTH 3.0
+#endif
 #define MIN_BARLINE_WIDTH 1.0
 #define MAX_BARLINE_WIDTH 8.0
 
@@ -175,7 +181,6 @@ namespace vrv {
 /* Style parameters for mensural notation */
 // Ratios of mensural notehead, accidental, aug. dot size to CMN for the same staff size
 
-#define CHMTL
 #ifdef CHMTL
 
 // In the absence of a proper mensural font, these values give relatively good results.

@@ -87,11 +87,11 @@ public:
     ///@}
 
     /**
-     * Returns the drawing top and bottom taking into accound stem, etc.
+     * Returns the drawing top and bottom taking into account stem, etc.
      * We pass the doc as parameter in order to have access to the current drawing parameters.
      * withArtic specifies if the articulation sign needs to be taken into account or not.
-     * articPartType indicates if the inside or outside artic part has to be taken into account (inside is taken
-     * into account in any case)
+     * articPartType indicates if the inside or outside artic part has to be taken into
+     * account (inside is taken into account in any case)
      */
     int GetDrawingTop(Doc *doc, int staffSize, bool withArtic = true, ArticPartType articPartType = ARTIC_PART_INSIDE);
     int GetDrawingBottom(

@@ -62,9 +62,9 @@ public:
     static wchar_t GetSmuflCode(data_ARTICULATION artic, data_STAFFREL place);
 
     /**
-     * Static method that retrieves the vertical correctoin for a SMuFL code for with data_STAFFREL.
+     * Static method that retrieves the vertical correction for a SMuFL code with data_STAFFREL.
      * The reason for this is that SMuFL sometimes has the glyph below the line, sometimes above.
-     * See bow indications for an example where is is always above
+     * See bow indications for an example where it's always above
      */
     static bool VerticalCorr(wchar_t code, data_STAFFREL place);
 
@@ -74,7 +74,7 @@ public:
     static bool IsCentered(data_ARTICULATION artic);
 
     /**
-     * Return the inside and outside part of an artic if any (NULL otherwiser)
+     * Return the inside and outside part of an artic if any (NULL otherwise)
      */
     ///@{
     ArticPart *GetInsidePart();
@@ -120,7 +120,7 @@ private:
 //----------------------------------------------------------------------------
 
 /**
- * This class models a sub-part of an artic element and has not direct MEI correspondant.
+ * This class models a sub-part of an artic element and has no direct MEI equivalent.
  */
 
 class ArticPart : public LayerElement, public AttArticulation, public AttColor, public AttPlacement {
