@@ -216,40 +216,29 @@ void View::DrawMensuralNote(DeviceContext *dc, LayerElement *element, Layer *lay
         bool drawingCueSize = rest->IsCueSize();
         int drawingDur = rest->GetActualDur();
         int x = element->GetDrawingX();
-        // GetDrawingY() is irrelevant for maxima and longa, which should extend down from the
-        // top of the staff (y=0) to the bottom.
-        int y = element->GetDrawingY();
-        //int y = 0;
+        int y = staff->GetDrawingY();
         
         if (drawingDur > DUR_2) {
             x -= m_doc->GetGlyphWidth(SMUFL_E0A3_noteheadHalf, staff->m_drawingStaffSize, drawingCueSize) / 2;
         }
         
-        int zero = 0;
         switch (drawingDur) {
-            case DUR_MX: DrawMaximaToLongaRest(dc, x, (int)0, element, staff); return;
-            //case DUR_MX: DrawMaximaToLongaRest(dc, x, zero, element, staff); return;
-            //case DUR_MX: DrawMaximaToLongaRest(dc, x, y, element, staff); return;
-            //case DUR_MX: DrawMaximaToLongaRest(dc, x, element, staff); return;
-                //charCode = SMUFL_E9F0_mensuralRestMaxima; break;
-            case DUR_LG: DrawMaximaToLongaRest(dc, x, 0, element, staff); return;
-            //case DUR_LG: DrawMaximaToLongaRest(dc, x, zero+20, element, staff); return;
-            //case DUR_LG: DrawMaximaToLongaRest(dc, x, y+(20-y), element, staff); return;
-            //case DUR_LG: DrawMaximaToLongaRest(dc, x, -30, element, staff); return;
-            //case DUR_LG: DrawMaximaToLongaRest(dc, x, y, element, staff); return;
-            //case DUR_LG: DrawMaximaToLongaRest(dc, x, element, staff); return;
-                //charCode = SMUFL_E9F1_mensuralRestLongaPerfecta; break;
+            case DUR_MX: DrawMaximaToLongaRest(dc, x, y, element, staff); return;
+            case DUR_LG: DrawMaximaToLongaRest(dc, x, y, element, staff); return;
+                
             case DUR_BR: charCode = SMUFL_E9F3_mensuralRestBrevis; break;
             case DUR_1: charCode = SMUFL_E9F4_mensuralRestSemibrevis; break;
             case DUR_2: charCode = SMUFL_E9F5_mensuralRestMinima; break;
             case DUR_4: charCode = SMUFL_E9F6_mensuralRestSemiminima; break;
             case DUR_8: charCode = SMUFL_E9F7_mensuralRestFusa; break;
             case DUR_16: charCode = SMUFL_E9F8_mensuralRestSemifusa; break;
-            default: charCode = SMUFL_E04B_segnoSerpent2;                   // This should never happen
+            default: charCode = SMUFL_E04B_segnoSerpent2;                  // This should never happen
         }
-        DrawSmuflCode(dc, x, y, charCode, pseudoStaffSize, false);
+        // Duration is brevis or shorter.
+        //int yOffset = 3*staff->m_drawingStaffSize;
+        int yOffset = (14*staff->m_drawingStaffSize)/4;
+        DrawSmuflCode(dc, x, y-yOffset, charCode, pseudoStaffSize, false);
     }
-
 
     
 void View::DrawMensur(DeviceContext *dc, LayerElement *element, Layer *layer, Staff *staff, Measure *measure)
@@ -553,6 +542,7 @@ void View::DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, L
                         !(mensural_black && note->GetColored());
     height = m_doc->GetDrawingBeamWidth(pseudoStaffSize, false) / 2;
     xn = element->GetDrawingX();
+    LogDebug("DrawMaximaToBrevis: xn=%d", xn);
 
     // Calculate size of the rectangle
     xLeft = xn - m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
@@ -638,12 +628,16 @@ void View::DrawMaximaToLongaRest(DeviceContext *dc, int x, int y, LayerElement *
 #else
     heightFactor = (float)(staff->m_drawingLines-1)/4.0;
     int realStaffSize = nominalStaffSize*heightFactor;
+    y = staff->GetDrawingY();
     DrawRestLines(dc, x, y, y - realStaffSize, drawingDur);
+    //DrawRestLines(dc, x, staff->GetDrawingY(), staff->GetDrawingY() - realStaffSize, drawingDur);
 
 #endif
     dc->EndGraphic(element, this);
 }
 
+    
+#define REST_LINEWIDTH_FACTOR 2.0   // Should probably replace w/ GetDrawingRestWidth(), etc.
     
 void View::DrawRestLines(DeviceContext *dc, int x, int y_top, int y_bottom, int drawingDur)
 {
@@ -653,17 +647,17 @@ void View::DrawRestLines(DeviceContext *dc, int x, int y_top, int y_bottom, int 
     // y_top += m_doc->GetDrawingStaffLineWidth(100) / 2;
     // y_bottom -= m_doc->GetDrawingStaffLineWidth(100) / 2;
     
-    int restLineWidth = m_doc->GetDrawingBarLineWidth(100);
+    int restLineWidth = REST_LINEWIDTH_FACTOR*m_doc->GetDrawingBarLineWidth(100);
     if (drawingDur==DUR_MX) {
-        //int x1 = x - m_doc->GetDrawingBeamWidth(100, false) - restLineWidth;
-        int x2 = x + m_doc->GetDrawingBeamWidth(100, false) + restLineWidth;
-    
-        x2 -= restLineWidth;
-        DrawVerticalLine(dc, y_top, y_bottom, x, restLineWidth);
+        //int x1 = x - m_doc->GetDrawingBeamWidth(100, false) - restLineWidth/2;
+        //int x2 = x + m_doc->GetDrawingBeamWidth(100, false) - restLineWidth/2;
+        int x1 = x - restLineWidth;
+        int x2 = x + restLineWidth;
+        DrawVerticalLine(dc, y_top, y_bottom, x1, restLineWidth);
         DrawVerticalLine(dc, y_top, y_bottom, x2, restLineWidth);
     }
     else
-        DrawVerticalLine(dc, y_top+400, y_bottom+420, x, restLineWidth);
+        DrawVerticalLine(dc, y_top, y_bottom, x, restLineWidth);
 }
 
     
@@ -676,6 +670,7 @@ void View::DrawLigature(DeviceContext *dc, LayerElement *element, Layer *layer, 
     
     Ligature *ligature = dynamic_cast<Ligature *>(element);
     assert(ligature);
+    LogDebug("DrawLigature n=%d idx=%d", ligature->GetN(), ligature->GetIdx());
     
     dc->StartGraphic(ligature, "", ligature->GetUuid());
 
