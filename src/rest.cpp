@@ -13,13 +13,12 @@ namespace vrv {
 // Rest
 //----------------------------------------------------------------------------
 
-Rest::Rest() : LayerElement("rest-"), DurationInterface(), PositionInterface(), AttColor()
-    // , AttRestVisMensural()
+Rest::Rest() : LayerElement("rest-"), DurationInterface(), PositionInterface(), AttColor(), AttRestVisMensural()
 {
     RegisterInterface(DurationInterface::GetAttClasses(), DurationInterface::IsInterface());
     RegisterInterface(PositionInterface::GetAttClasses(), PositionInterface::IsInterface());
     RegisterAttClass(ATT_COLOR);
-    //RegisterAttClass(ATT_RESTVISMENSURAL);
+    RegisterAttClass(ATT_RESTVISMENSURAL);
     Reset();
 }
 
