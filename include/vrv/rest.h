@@ -11,6 +11,7 @@
 #include "durationinterface.h"
 #include "layerelement.h"
 #include "positioninterface.h"
+#include "atts_mensural.h"
 
 namespace vrv {
 
