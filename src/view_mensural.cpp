@@ -209,10 +209,6 @@ void View::DrawMensuralNote(DeviceContext *dc, LayerElement *element, Layer *lay
         Rest *rest = dynamic_cast<Rest *>(element);
         assert(rest);
 
-        // Mensural symbols are usually somewhat smaller than CMN symbols for the same size
-        // staff; use _pseudoStaffSize_ to force this for fonts that don't consider that fact.
-        int pseudoStaffSize = (int)(TEMP_MNOTEHEAD_SIZE_FACTOR * staff->m_drawingStaffSize);
-
         bool drawingCueSize = rest->IsCueSize();
         int drawingDur = rest->GetActualDur();
         int x = element->GetDrawingX();
@@ -234,10 +230,11 @@ void View::DrawMensuralNote(DeviceContext *dc, LayerElement *element, Layer *lay
             case DUR_16: charCode = SMUFL_E9F8_mensuralRestSemifusa; break;
             default: charCode = SMUFL_E04B_segnoSerpent2;                  // This should never happen
         }
+
         // Duration is brevis or shorter.
         //int yOffset = 3*staff->m_drawingStaffSize;
         int yOffset = (14*staff->m_drawingStaffSize)/4;
-        DrawSmuflCode(dc, x, y-yOffset, charCode, pseudoStaffSize, false);
+        DrawSmuflCode(dc, x, y-yOffset, charCode, staff->m_drawingStaffSize, false);
     }
 
     
@@ -605,7 +602,7 @@ void View::DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, L
 void View::DrawMaximaToLongaRest(DeviceContext *dc, int x, int y, LayerElement *element, Staff *staff)
 {
     Rest *rest = dynamic_cast<Rest *>(element);
-    float heightFactor;
+    int loc, nSpaces;
 
     dc->StartGraphic(element, "", element->GetUuid());
     
@@ -615,30 +612,35 @@ void View::DrawMaximaToLongaRest(DeviceContext *dc, int x, int y, LayerElement *
     //   correct for the actual number of lines. On one-line staves, draw rest
     //   from 1/2 space above the line to 1/2 space below. ??REALLY?
     int nominalStaffSize = m_doc->GetDrawingStaffSize(staff->m_drawingStaffSize);
-#ifdef NOTYET
-    if (staff->m_drawingLines==1) {
-        y += nominalStaffSize/8;
-        DrawRestLines(dc, x, y, y - nominalStaffSize/4);
+    int staffSpace = nominalStaffSize/4;
+    
+    // Set default vertical position offset and height, both in staff spaces (called
+    //   "double units" elsewhere in Verovio).
+    if (staff->m_drawingLines==5) {
+        loc = 2;
+        nSpaces = 2;
     }
     else {
-        heightFactor = (float)(staff->m_drawingLines-1)/4.0;
-        int realStaffSize = nominalStaffSize*heightFactor;
-        DrawRestLines(dc, x, y, y - realStaffSize);
+        // ??Surely we can come up with better defaults for other numbers of staff lines!
+        loc = 0;
+        nSpaces = staff->m_drawingLines-1;
     }
-#else
-    heightFactor = (float)(staff->m_drawingLines-1)/4.0;
-    int realStaffSize = nominalStaffSize*heightFactor;
-    y = staff->GetDrawingY();
-    DrawRestLines(dc, x, y, y - realStaffSize, drawingDur);
-    //DrawRestLines(dc, x, staff->GetDrawingY(), staff->GetDrawingY() - realStaffSize, drawingDur);
 
-#endif
+    int yStaffBottom, yLineBottom;
+    yStaffBottom = y - ((staff->m_drawingLines-1)*staffSpace);
+    if (staff->m_drawingLines==1) {
+        yLineBottom = y - (nominalStaffSize/8);
+        DrawRestLines(dc, x, yLineBottom, yLineBottom+staffSpace, drawingDur);
+    }
+    else {
+        yLineBottom = yStaffBottom+(loc*staffSpace/2);
+        int lineHeight = nSpaces*staffSpace;
+        DrawRestLines(dc, x, yLineBottom, yLineBottom+lineHeight, drawingDur);
+    }
     dc->EndGraphic(element, this);
 }
 
-    
-#define REST_LINEWIDTH_FACTOR 2.0   // Should probably replace w/ GetDrawingRestWidth(), etc.
-    
+
 void View::DrawRestLines(DeviceContext *dc, int x, int y_top, int y_bottom, int drawingDur)
 {
     assert(dc);
@@ -647,7 +649,7 @@ void View::DrawRestLines(DeviceContext *dc, int x, int y_top, int y_bottom, int 
     // y_top += m_doc->GetDrawingStaffLineWidth(100) / 2;
     // y_bottom -= m_doc->GetDrawingStaffLineWidth(100) / 2;
     
-    int restLineWidth = REST_LINEWIDTH_FACTOR*m_doc->GetDrawingBarLineWidth(100);
+    int restLineWidth = m_doc->GetDrawingLongMensRestLineWidth(100, false);
     if (drawingDur==DUR_MX) {
         //int x1 = x - m_doc->GetDrawingBeamWidth(100, false) - restLineWidth/2;
         //int x2 = x + m_doc->GetDrawingBeamWidth(100, false) - restLineWidth/2;
