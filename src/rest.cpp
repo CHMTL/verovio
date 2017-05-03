@@ -13,7 +13,11 @@ namespace vrv {
 // Rest
 //----------------------------------------------------------------------------
 
+#ifdef NOTYET
 Rest::Rest() : LayerElement("rest-"), DurationInterface(), PositionInterface(), AttColor(), AttRestVisMensural()
+#else
+Rest::Rest() : LayerElement("rest-"), DurationInterface(), PositionInterface(), AttColor()
+#endif
 {
     RegisterInterface(DurationInterface::GetAttClasses(), DurationInterface::IsInterface());
     RegisterInterface(PositionInterface::GetAttClasses(), PositionInterface::IsInterface());

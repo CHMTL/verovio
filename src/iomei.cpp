@@ -2712,7 +2712,8 @@ bool MeiInput::ReadMeiNote(Object *parent, pugi::xml_node note)
     vrvNote->ReadStemsCmn(note);
     vrvNote->ReadTiepresent(note);
     vrvNote->ReadVisibility(note);
-
+//    vrvNote->ReadStaffloc(note);
+    
     AttArticulation artic;
     artic.ReadArticulation(note);
     if (artic.HasArtic()) {

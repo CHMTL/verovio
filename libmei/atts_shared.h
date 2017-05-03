@@ -5132,6 +5132,10 @@ public:
     void SetOloc(char oloc_) { m_oloc = oloc_; }
     char GetOloc() const { return m_oloc; }
     bool HasOloc() const;
+    //
+    void SetLoc(char loc_) { m_loc = loc_; }
+    char GetLoc() const { return m_loc; }
+    bool HasLoc() const;
     ///@}
 
 private:
@@ -5139,6 +5143,8 @@ private:
     data_PITCHNAME m_ploc;
     /** Records staff location in terms of written octave. **/
     char m_oloc;
+    /** Records raw staff location. **/
+    char m_loc;
 
     /* include <attoloc> */
 };
