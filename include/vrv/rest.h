@@ -8,10 +8,10 @@
 #ifndef __VRV_REST_H__
 #define __VRV_REST_H__
 
+#include "atts_mensural.h"
 #include "durationinterface.h"
 #include "layerelement.h"
 #include "positioninterface.h"
-#include "atts_mensural.h"
 
 namespace vrv {
 
@@ -22,7 +22,11 @@ namespace vrv {
 /**
  * This class models the MEI <rest> element.
  */
-class Rest : public LayerElement, public DurationInterface, public PositionInterface, public AttColor {
+class Rest : public LayerElement,
+    public DurationInterface,
+    public PositionInterface,
+    public AttColor,
+    public AttRestVisMensural {
 public:
     /**
      * @name Constructors, destructors, reset and class name methods

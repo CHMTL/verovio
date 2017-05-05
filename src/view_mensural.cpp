@@ -29,7 +29,7 @@
 namespace vrv {
 
 int View::s_drawingLigX[2], View::s_drawingLigY[2]; // to keep coords. of ligatures
-bool View::s_drawingLigObliqua = false; // mark the first pass for an oblique
+bool View::s_drawingLigObliqua = false;             // mark the first pass for an oblique
 
 //----------------------------------------------------------------------------
 // View - Mensural
@@ -196,46 +196,55 @@ void View::DrawMensuralNote(DeviceContext *dc, LayerElement *element, Layer *lay
     DrawLayerChildren(dc, note, layer, staff, measure);
 }
 
-    void View::DrawMensuralRest(DeviceContext *dc, LayerElement *element, Layer *layer, Staff *staff, Measure *measure)
-    {
-        assert(dc);
-        assert(element);
-        assert(layer);
-        assert(staff);
-        assert(measure);
-        
-        wchar_t charCode;
+static void SetLocAndSpaces(Rest *rest, Staff *staff);
+static void SetLocAndSpaces(Rest *rest, Staff *staff)
+{
+    
+}
 
-        Rest *rest = dynamic_cast<Rest *>(element);
-        assert(rest);
+    
+void View::DrawMensuralRest(DeviceContext *dc, LayerElement *element, Layer *layer, Staff *staff, Measure *measure)
+{
+    assert(dc);
+    assert(element);
+    assert(layer);
+    assert(staff);
+    assert(measure);
+    
+    wchar_t charCode;
 
-        bool drawingCueSize = rest->IsCueSize();
-        int drawingDur = rest->GetActualDur();
-        int x = element->GetDrawingX();
-        int y = staff->GetDrawingY();
-        
-        if (drawingDur > DUR_2) {
-            x -= m_doc->GetGlyphWidth(SMUFL_E0A3_noteheadHalf, staff->m_drawingStaffSize, drawingCueSize) / 2;
-        }
-        
-        switch (drawingDur) {
-            case DUR_MX: DrawMaximaToLongaRest(dc, x, y, element, staff); return;
-            case DUR_LG: DrawMaximaToLongaRest(dc, x, y, element, staff); return;
-                
-            case DUR_BR: charCode = SMUFL_E9F3_mensuralRestBrevis; break;
-            case DUR_1: charCode = SMUFL_E9F4_mensuralRestSemibrevis; break;
-            case DUR_2: charCode = SMUFL_E9F5_mensuralRestMinima; break;
-            case DUR_4: charCode = SMUFL_E9F6_mensuralRestSemiminima; break;
-            case DUR_8: charCode = SMUFL_E9F7_mensuralRestFusa; break;
-            case DUR_16: charCode = SMUFL_E9F8_mensuralRestSemifusa; break;
-            default: charCode = SMUFL_E04B_segnoSerpent2;                  // This should never happen
-        }
+    Rest *rest = dynamic_cast<Rest *>(element);
+    assert(rest);
 
-        // Duration is brevis or shorter.
-        //int yOffset = 3*staff->m_drawingStaffSize;
-        int yOffset = (14*staff->m_drawingStaffSize)/4;
-        DrawSmuflCode(dc, x, y-yOffset, charCode, staff->m_drawingStaffSize, false);
+    bool drawingCueSize = rest->IsCueSize();
+    int drawingDur = rest->GetActualDur();
+    int x = element->GetDrawingX();
+    int y = staff->GetDrawingY();
+    
+    if (drawingDur > DUR_2) {
+        x -= m_doc->GetGlyphWidth(SMUFL_E0A3_noteheadHalf, staff->m_drawingStaffSize, drawingCueSize) / 2;
     }
+    
+    if (drawingDur==DUR_MX || drawingDur==DUR_LG) {
+        //SetLocAndSpaces(rest, staff);
+        DrawMaximaToLongaRest(dc, x, y, element, staff);
+        return;
+    }
+    switch (drawingDur) {
+        case DUR_BR: charCode = SMUFL_E9F3_mensuralRestBrevis; break;
+        case DUR_1: charCode = SMUFL_E9F4_mensuralRestSemibrevis; break;
+        case DUR_2: charCode = SMUFL_E9F5_mensuralRestMinima; break;
+        case DUR_4: charCode = SMUFL_E9F6_mensuralRestSemiminima; break;
+        case DUR_8: charCode = SMUFL_E9F7_mensuralRestFusa; break;
+        case DUR_16: charCode = SMUFL_E9F8_mensuralRestSemifusa; break;
+        default: charCode = SMUFL_E04B_segnoSerpent2;                  // This should never happen
+    }
+
+    // Duration is brevis or shorter.
+    //int yOffset = 3*staff->m_drawingStaffSize;
+    int yOffset = (14*staff->m_drawingStaffSize)/4;
+    DrawSmuflCode(dc, x, y-yOffset, charCode, staff->m_drawingStaffSize, false);
+}
 
     
 void View::DrawMensur(DeviceContext *dc, LayerElement *element, Layer *layer, Staff *staff, Measure *measure)
