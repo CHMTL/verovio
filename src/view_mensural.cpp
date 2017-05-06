@@ -219,17 +219,18 @@ void View::DrawMensuralRest(DeviceContext *dc, LayerElement *element, Layer *lay
     bool drawingCueSize = rest->IsCueSize();
     int drawingDur = rest->GetActualDur();
     int x = element->GetDrawingX();
-    int y = staff->GetDrawingY();
-    
-    if (drawingDur > DUR_2) {
-        x -= m_doc->GetGlyphWidth(SMUFL_E0A3_noteheadHalf, staff->m_drawingStaffSize, drawingCueSize) / 2;
-    }
+    int yStaffTop = staff->GetDrawingY();
     
     if (drawingDur==DUR_MX || drawingDur==DUR_LG) {
-        //SetLocAndSpaces(rest, staff);
-        DrawMaximaToLongaRest(dc, x, y, element, staff);
+        DrawMaximaOrLongaRest(dc, x, yStaffTop, element, staff);
         return;
     }
+
+    if (drawingDur > DUR_2) {
+        x -= m_doc->GetGlyphWidth(SMUFL_E0A3_noteheadHalf, staff->m_drawingStaffSize,
+                                  drawingCueSize) / 2;
+    }
+
     switch (drawingDur) {
         case DUR_BR: charCode = SMUFL_E9F3_mensuralRestBrevis; break;
         case DUR_1: charCode = SMUFL_E9F4_mensuralRestSemibrevis; break;
@@ -241,9 +242,10 @@ void View::DrawMensuralRest(DeviceContext *dc, LayerElement *element, Layer *lay
     }
 
     // Duration is brevis or shorter.
-    //int yOffset = 3*staff->m_drawingStaffSize;
-    int yOffset = (14*staff->m_drawingStaffSize)/4;
-    DrawSmuflCode(dc, x, y-yOffset, charCode, staff->m_drawingStaffSize, false);
+    int yOffset;
+    if (staff->m_drawingLines==1) yOffset = staff->m_drawingStaffSize;
+    else yOffset = (14*staff->m_drawingStaffSize)/4;
+    DrawSmuflCode(dc, x, yStaffTop-yOffset, charCode, staff->m_drawingStaffSize, false);
 }
 
     
@@ -608,20 +610,18 @@ void View::DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, L
 }
 
 
-void View::DrawMaximaToLongaRest(DeviceContext *dc, int x, int y, LayerElement *element, Staff *staff)
+void View::DrawMaximaOrLongaRest(DeviceContext *dc, int x, int yStaffTop, LayerElement *element, Staff *staff)
 {
     Rest *rest = dynamic_cast<Rest *>(element);
-    int loc, nSpaces;
 
     dc->StartGraphic(element, "", element->GetUuid());
     
     int drawingDur = rest->GetActualDur();
-
-    // The staff's m_drawingStaffSize seems always to be set as if it has 5 lines;
-    //   correct for the actual number of lines. On one-line staves, draw rest
-    //   from 1/2 space above the line to 1/2 space below. ??REALLY?
     int nominalStaffSize = m_doc->GetDrawingStaffSize(staff->m_drawingStaffSize);
     int staffSpace = nominalStaffSize/4;
+    int yStaffBottom = yStaffTop - ((staff->m_drawingLines-1)*staffSpace);
+    int loc, nSpaces;
+    int yLineBottom, yLineTop;
     
     // Set default vertical position offset and height, both in staff spaces (called
     //   "double units" elsewhere in Verovio).
@@ -635,16 +635,25 @@ void View::DrawMaximaToLongaRest(DeviceContext *dc, int x, int y, LayerElement *
         nSpaces = staff->m_drawingLines-1;
     }
 
-    int yStaffBottom, yLineBottom;
-    yStaffBottom = y - ((staff->m_drawingLines-1)*staffSpace);
+    if (rest->HasSpaces()) {
+        nSpaces = rest->GetSpaces();
+    }
+
+    yLineBottom = yStaffBottom+(loc*staffSpace/2);
+    
+    //SetLocAndSpaces(rest, staff);
+
+    // The staff's m_drawingStaffSize seems always to be set as if it has 5 lines;
+    //   correct for the actual number of lines. On one-line staves, draw rest
+    //   from 1/2 space above the line to 1/2 space below.
+    
     if (staff->m_drawingLines==1) {
-        yLineBottom = y - (nominalStaffSize/8);
+        yLineBottom = yStaffTop - (nominalStaffSize/8);
         DrawRestLines(dc, x, yLineBottom, yLineBottom+staffSpace, drawingDur);
     }
     else {
-        yLineBottom = yStaffBottom+(loc*staffSpace/2);
-        int lineHeight = nSpaces*staffSpace;
-        DrawRestLines(dc, x, yLineBottom, yLineBottom+lineHeight, drawingDur);
+        yLineTop = yLineBottom+(nSpaces*staffSpace);
+        DrawRestLines(dc, x, yLineBottom, yLineTop, drawingDur);
     }
     dc->EndGraphic(element, this);
 }
