@@ -93,7 +93,6 @@ public:
     ///@}
 
     /**
-<<<<<<< HEAD
      * @name Get and set the layerN drawing value
      */
     ///@{
@@ -126,9 +125,6 @@ public:
 
     /**
      * Returns the drawing top and bottom taking into accound stem, etc.
-=======
-     * Returns the drawing top and bottom taking into account stem, etc.
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
      * We pass the doc as parameter in order to have access to the current drawing parameters.
      * withArtic specifies if the articulation sign needs to be taken into account or not.
      * articPartType indicates if the inside or outside artic part has to be taken into

@@ -12,11 +12,7 @@
 #include "custom_style.h"
 #else
 
-<<<<<<< HEAD
 namespace vrv {
-=======
-#define CHMTL
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
     
 //----------------------------------------------------------------------------
 // Default layout values
@@ -325,9 +321,6 @@ public:
 
 } // namespace vrv
 
-<<<<<<< HEAD
 #endif // CUSTOM_VEROVIO_STYLE
 
-=======
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
 #endif // __VRV_DEF_H__

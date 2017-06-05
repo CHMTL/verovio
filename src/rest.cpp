@@ -27,28 +27,18 @@ namespace vrv {
 // Rest
 //----------------------------------------------------------------------------
 
-<<<<<<< HEAD
 Rest::Rest()
     : LayerElement("rest-")
     , DurationInterface()
     , PositionInterface()
     , AttColor()
     , AttRelativesize()
-=======
-Rest::Rest() : LayerElement("rest-")
-    , DurationInterface()
-    , PositionInterface()
-    , AttColor()
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
     , AttRestVisMensural()
 {
     RegisterInterface(DurationInterface::GetAttClasses(), DurationInterface::IsInterface());
     RegisterInterface(PositionInterface::GetAttClasses(), PositionInterface::IsInterface());
     RegisterAttClass(ATT_COLOR);
-<<<<<<< HEAD
     RegisterAttClass(ATT_RELATIVESIZE);
-=======
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
     RegisterAttClass(ATT_RESTVISMENSURAL);
     Reset();
 }
@@ -63,7 +53,6 @@ void Rest::Reset()
     DurationInterface::Reset();
     PositionInterface::Reset();
     ResetColor();
-<<<<<<< HEAD
     ResetRelativesize();
     ResetRestVisMensural();
 }
@@ -231,9 +220,6 @@ int Rest::ResetHorizontalAlignment(FunctorParams *functorParams)
     PositionInterface::InterfaceResetHorizontalAlignment(functorParams, this);
 
     return FUNCTOR_CONTINUE;
-=======
-    ResetRestVisMensural();
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
 }
 
 } // namespace vrv

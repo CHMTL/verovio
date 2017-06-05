@@ -1196,11 +1196,7 @@ void MeiOutput::WriteMeiRest(pugi::xml_node currentNode, Rest *rest)
     WriteDurationInterface(currentNode, rest);
     WritePositionInterface(currentNode, rest);
     rest->WriteColor(currentNode);
-<<<<<<< HEAD
     rest->WriteRelativesize(currentNode);
-=======
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
-    rest->WriteRestVisMensural(currentNode);
 }
 
 void MeiOutput::WriteMeiProport(pugi::xml_node currentNode, Proport *proport)
@@ -3171,10 +3167,7 @@ bool MeiInput::ReadMeiRest(Object *parent, pugi::xml_node rest)
     ReadDurationInterface(rest, vrvRest);
     ReadPositionInterface(rest, vrvRest);
     vrvRest->ReadColor(rest);
-<<<<<<< HEAD
     vrvRest->ReadRelativesize(rest);
-=======
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
     vrvRest->ReadRestVisMensural(rest);
 
     parent->AddChild(vrvRest);

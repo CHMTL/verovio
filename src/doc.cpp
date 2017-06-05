@@ -827,13 +827,6 @@ FontInfo *Doc::GetDrawingLyricFont(int staffSize)
     m_drawingLyricFont.SetPointSize(m_drawingLyricFontSize * staffSize / 100);
     return &m_drawingLyricFont;
 }
-
-int Doc::GetDrawingLongMensRestLineWidth(int staffSize, bool graceSize) const
-{
-    int value = m_drawingLongMensRestLineWidth * staffSize / 100;
-    if (graceSize) value = value * this->m_style->m_graceNum / this->m_style->m_graceDen;
-    return value;
-}
     
 char Doc::GetLeftMargin(const ClassId classId) const
 {

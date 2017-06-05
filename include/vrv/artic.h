@@ -109,11 +109,7 @@ private:
 //----------------------------------------------------------------------------
 
 /**
-<<<<<<< HEAD
  * This class models a sub-part of an artic element and has not direct MEI equivlatent.
-=======
- * This class models a sub-part of an artic element and has no direct MEI equivalent.
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
  */
 
 class ArticPart : public LayerElement, public AttArticulation, public AttColor, public AttPlacement {

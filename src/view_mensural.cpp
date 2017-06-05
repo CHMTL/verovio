@@ -168,56 +168,6 @@ void View::DrawMensuralRest(DeviceContext *dc, LayerElement *element, Layer *lay
     DrawSmuflCode(dc, x, y, charCode, staff->m_drawingStaffSize, drawingCueSize);
 }
 
-<<<<<<< HEAD
-=======
-    
-void View::DrawMensuralRest(DeviceContext *dc, LayerElement *element, Layer *layer, Staff *staff, Measure *measure)
-{
-    assert(dc);
-    assert(element);
-    assert(layer);
-    assert(staff);
-    assert(measure);
-    
-    wchar_t charCode;
-
-    Rest *rest = dynamic_cast<Rest *>(element);
-    assert(rest);
-
-    bool drawingCueSize = rest->IsCueSize();
-    int drawingDur = rest->GetActualDur();
-    int x = element->GetDrawingX();
-    int yStaffTop = staff->GetDrawingY();
-    
-    if (drawingDur==DUR_MX || drawingDur==DUR_LG) {
-        DrawMaximaOrLongaRest(dc, x, yStaffTop, element, staff);
-        return;
-    }
-
-    if (drawingDur > DUR_2) {
-        x -= m_doc->GetGlyphWidth(SMUFL_E0A3_noteheadHalf, staff->m_drawingStaffSize,
-                                  drawingCueSize) / 2;
-    }
-
-    switch (drawingDur) {
-        case DUR_BR: charCode = SMUFL_E9F3_mensuralRestBrevis; break;
-        case DUR_1: charCode = SMUFL_E9F4_mensuralRestSemibrevis; break;
-        case DUR_2: charCode = SMUFL_E9F5_mensuralRestMinima; break;
-        case DUR_4: charCode = SMUFL_E9F6_mensuralRestSemiminima; break;
-        case DUR_8: charCode = SMUFL_E9F7_mensuralRestFusa; break;
-        case DUR_16: charCode = SMUFL_E9F8_mensuralRestSemifusa; break;
-        default: charCode = SMUFL_E04B_segnoSerpent2;                  // This should never happen
-    }
-
-    // Duration is brevis or shorter.
-    int yOffset;
-    if (staff->m_drawingLines==1) yOffset = staff->m_drawingStaffSize;
-    else yOffset = (14*staff->m_drawingStaffSize)/4;
-    DrawSmuflCode(dc, x, yStaffTop-yOffset, charCode, staff->m_drawingStaffSize, false);
-}
-
-    
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
 void View::DrawMensur(DeviceContext *dc, LayerElement *element, Layer *layer, Staff *staff, Measure *measure)
 {
     assert(dc);
@@ -291,17 +241,10 @@ void View::DrawMensuralStem(DeviceContext *dc, LayerElement *object, Staff *staf
     totalFlagStemHeight = flagStemHeight * (nbFlags * 2 - 1) / 2;
 
     /* SMuFL provides combining stem-and-flag characters with one and two flags, but
-<<<<<<< HEAD
         at the moment, I'm using only the one flag ones, partly out of concern for
         possible three-flag notes. */
 
     /* In black notation, the semiminima gets one flag; in white notation, it gets none.
-=======
-        white notation can require three or even four flags, so we use only the one flag
-        chars.
-    
-    In black notation, the semiminima gets one flag; in white notation, it gets none.
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
         In both cases, as in CWMN, each shorter duration gets one additional flag. */
 
     if (dir == STEMDIRECTION_down) {
@@ -314,12 +257,7 @@ void View::DrawMensuralStem(DeviceContext *dc, LayerElement *object, Staff *staf
 
     // If we have flags, add them to the height.
     int y1 = originY;
-<<<<<<< HEAD
     int y2 = ((nbFlags > 0) ? (y1 + baseStem + totalFlagStemHeight) : (y1 + baseStem)) + heightY;
-=======
-    int y2 = ((nbFlags>0) ? (y1 + baseStem + totalFlagStemHeight) : (y1 + baseStem)) + heightY;
-    //LogDebug("drawingDur=%d nbFlags=%d totalFlagStemHeight=%d", drawingDur, nbFlags, totalFlagStemHeight);
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
     int x2;
     if (drawingDur < DUR_BR)
         x2 = xn + radius;
@@ -337,10 +275,7 @@ void View::DrawMensuralStem(DeviceContext *dc, LayerElement *object, Staff *staf
     // this will not work if the pseudo size is changed
     int shortening = 0.9 * m_doc->GetDrawingUnit(staffSize);
 
-<<<<<<< HEAD
     // LogDebug("DrawMensuralStem: drawingDur=%d mensural_black=%d nbFlags=%d", drawingDur, mensural_black, nbFlags);
-=======
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
     int stemY1 = (dir == STEMDIRECTION_up) ? y1 + shortening : y1 - shortening;
     int stemY2 = y2;
     if (nbFlags > 0) {
@@ -356,31 +291,17 @@ void View::DrawMensuralStem(DeviceContext *dc, LayerElement *object, Staff *staf
 
         if (nbFlags > 0) {
             for (int i = 0; i < nbFlags; i++)
-<<<<<<< HEAD
                 DrawSmuflCode(dc, x2 - halfStemWidth, stemY1 - i * flagStemHeight,
                     SMUFL_E949_mensuralCombStemUpFlagSemiminima, staff->m_drawingStaffSize, drawingCueSize);
-=======
-                DrawSmuflCode(dc, x2 - halfStemWidth, stemY1 + (i * flagStemHeight),
-                    SMUFL_E949_mensuralCombStemUpFlagSemiminima,
-                    staff->m_drawingStaffSize, drawingCueSize);
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
         }
         else
             DrawFilledRectangle(dc, x2 - halfStemWidth, stemY1, x2 + halfStemWidth, stemY2);
     }
     else {
-<<<<<<< HEAD
         if (nbFlags > 0) {
             for (int i = 0; i < nbFlags; i++)
                 DrawSmuflCode(dc, x2 - halfStemWidth, stemY1 + i * flagStemHeight,
                     SMUFL_E94A_mensuralCombStemDownFlagSemiminima, staff->m_drawingStaffSize, drawingCueSize);
-=======
-        if (nbFlags>0) {
-            // I believe no mensural note with flags can be stem down, so should never get here. --DAB
-            for (int i = 0; i < nbFlags; i++)
-                DrawSmuflCode(dc, x2 - halfStemWidth, stemY1 - (i * flagStemHeight), SMUFL_E94A_mensuralCombStemDownFlagSemiminima,
-                    staff->m_drawingStaffSize, drawingCueSize);
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
         }
         else
             DrawFilledRectangle(dc, x2 - halfStemWidth, stemY1, x2 + halfStemWidth, stemY2);
@@ -593,73 +514,6 @@ void View::DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, L
     return;
 }
 
-<<<<<<< HEAD
-=======
-
-void View::DrawMaximaOrLongaRest(DeviceContext *dc, int x, int yStaffTop, LayerElement *element, Staff *staff)
-{
-    Rest *rest = dynamic_cast<Rest *>(element);
-
-    dc->StartGraphic(element, "", element->GetUuid());
-    
-    int drawingDur = rest->GetActualDur();
-    int nominalStaffSize = m_doc->GetDrawingStaffSize(staff->m_drawingStaffSize);
-    int staffSpace = nominalStaffSize/4;
-    int yStaffBottom = yStaffTop - ((staff->m_drawingLines-1)*staffSpace);
-    int loc, nSpaces;
-    int yLineBottom, yLineTop;
-    
-    // Set default vertical position offset and height, both in staff spaces (called
-    //   "double units" elsewhere in Verovio).
-    if (staff->m_drawingLines==5) {
-        loc = 2;
-        nSpaces = 2;
-    }
-    else {
-        // ??Surely we can come up with better defaults for other numbers of staff lines!
-        loc = 0;
-        nSpaces = staff->m_drawingLines-1;
-    }
-
-    //if (rest->HasLoc()) loc = rest->GetLoc();  can't do this till get Laurent's latest
-    if (rest->HasSpaces()) nSpaces = rest->GetSpaces();
-
-    yLineBottom = yStaffBottom+(loc*staffSpace/2);
-    
-    // The staff's m_drawingStaffSize seems always to be set as if it has 5 lines;
-    //   correct for the actual number of lines. On one-line staves, draw rest
-    //   from 1/2 space above the line to 1/2 space below.
-    
-    if (staff->m_drawingLines==1) {
-        yLineBottom = yStaffTop - (nominalStaffSize/8);
-        DrawRestLines(dc, x, yLineBottom, yLineBottom+staffSpace, drawingDur);
-    }
-    else {
-        yLineTop = yLineBottom+(nSpaces*staffSpace);
-        DrawRestLines(dc, x, yLineBottom, yLineTop, drawingDur);
-    }
-    dc->EndGraphic(element, this);
-}
-
-
-void View::DrawRestLines(DeviceContext *dc, int x, int y_top, int y_bottom, int drawingDur)
-{
-    assert(dc);
-    
-    int restLineWidth = m_doc->GetDrawingLongMensRestLineWidth(100, false);
-    if (drawingDur==DUR_MX) {
-        // Draw the two lines close enough together that it's obvious they're one symbol.
-        int x1 = x - (int)(0.80*restLineWidth);
-        int x2 = x + (int)(0.80*restLineWidth);
-        DrawVerticalLine(dc, y_top, y_bottom, x1, restLineWidth);
-        DrawVerticalLine(dc, y_top, y_bottom, x2, restLineWidth);
-    }
-    else
-        DrawVerticalLine(dc, y_top, y_bottom, x, restLineWidth);
-}
-
-    
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
 void View::DrawLigature(DeviceContext *dc, LayerElement *element, Layer *layer, Staff *staff, Measure *measure)
 {
     assert(dc);
@@ -669,12 +523,7 @@ void View::DrawLigature(DeviceContext *dc, LayerElement *element, Layer *layer, 
 
     Ligature *ligature = dynamic_cast<Ligature *>(element);
     assert(ligature);
-<<<<<<< HEAD
 
-=======
-    LogDebug("DrawLigature n=%d idx=%d", ligature->GetN(), ligature->GetIdx());
-    
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
     dc->StartGraphic(ligature, "", ligature->GetUuid());
 
     // Draw children (notes)
