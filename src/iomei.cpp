@@ -1196,7 +1196,10 @@ void MeiOutput::WriteMeiRest(pugi::xml_node currentNode, Rest *rest)
     WriteDurationInterface(currentNode, rest);
     WritePositionInterface(currentNode, rest);
     rest->WriteColor(currentNode);
+<<<<<<< HEAD
     rest->WriteRelativesize(currentNode);
+=======
+>>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
     rest->WriteRestVisMensural(currentNode);
 }
 
@@ -3028,6 +3031,7 @@ bool MeiInput::ReadMeiLigature(Object *parent, pugi::xml_node ligature)
     vrvLigature->ReadStems(ligature);
     vrvLigature->ReadStemsCmn(ligature);
     vrvLigature->ReadTiepresent(ligature);
+    //vrvLigature->ReadForm(ligature);
 
     parent->AddChild(vrvLigature);
     return ReadMeiLayerChildren(vrvLigature, ligature, vrvLigature);
@@ -3132,7 +3136,8 @@ bool MeiInput::ReadMeiNote(Object *parent, pugi::xml_node note)
     vrvNote->ReadStemsCmn(note);
     vrvNote->ReadTiepresent(note);
     vrvNote->ReadVisibility(note);
-
+//    vrvNote->ReadStaffloc(note);
+    
     AttArticulation artic;
     artic.ReadArticulation(note);
     if (artic.HasArtic()) {
@@ -3166,7 +3171,10 @@ bool MeiInput::ReadMeiRest(Object *parent, pugi::xml_node rest)
     ReadDurationInterface(rest, vrvRest);
     ReadPositionInterface(rest, vrvRest);
     vrvRest->ReadColor(rest);
+<<<<<<< HEAD
     vrvRest->ReadRelativesize(rest);
+=======
+>>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
     vrvRest->ReadRestVisMensural(rest);
 
     parent->AddChild(vrvRest);

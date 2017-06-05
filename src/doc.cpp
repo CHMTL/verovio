@@ -828,6 +828,13 @@ FontInfo *Doc::GetDrawingLyricFont(int staffSize)
     return &m_drawingLyricFont;
 }
 
+int Doc::GetDrawingLongMensRestLineWidth(int staffSize, bool graceSize) const
+{
+    int value = m_drawingLongMensRestLineWidth * staffSize / 100;
+    if (graceSize) value = value * this->m_style->m_graceNum / this->m_style->m_graceDen;
+    return value;
+}
+    
 char Doc::GetLeftMargin(const ClassId classId) const
 {
     if (classId == ACCID) return m_style->m_leftMarginAccid;
@@ -999,8 +1006,9 @@ Page *Doc::SetDrawingPage(int pageIdx)
     m_drawingLedgerLine = glyph_size * 72 / 100;
 
     glyph_size = GetGlyphWidth(SMUFL_E0A2_noteheadWhole, 100, 0);
-
     m_drawingBrevisWidth = (int)((glyph_size * 0.8) / 2);
+    
+    m_drawingLongMensRestLineWidth = m_style->m_unit / 2;
 
     return m_drawingPage;
 }

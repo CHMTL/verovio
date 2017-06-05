@@ -8,15 +8,9 @@
 #ifndef __VRV_STYLE_H__
 #define __VRV_STYLE_H__
 
-#ifdef CUSTOM_VEROVIO_STYLE
-#include "custom_style.h"
-#else
-
-<<<<<<< HEAD
 namespace vrv {
-=======
+
 #define CHMTL
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
     
 //----------------------------------------------------------------------------
 // Default layout values
@@ -114,12 +108,12 @@ namespace vrv {
 #define MAX_LEFT_MARGIN_DEFAULT 10.0
 
 #define DEFAULT_LEFT_MARGIN_ACCID 1.0
-#define DEFAULT_LEFT_MARGIN_BARLINE DEFAULT_LEFT_MARGIN_DEFAULT
+#define DEFAULT_LEFT_MARGIN_BARLINE 1.0
 #define DEFAULT_LEFT_MARGIN_BARLINE_ATTR_LEFT 0.0
 #define DEFAULT_LEFT_MARGIN_BARLINE_ATTR_RIGHT 1.0
 #define DEFAULT_LEFT_MARGIN_BEATRPT 2.0
 #define DEFAULT_LEFT_MARGIN_CHORD 1.0
-#define DEFAULT_LEFT_MARGIN_CLEF 1.0
+#define DEFAULT_LEFT_MARGIN_CLEF 0.5
 #define DEFAULT_LEFT_MARGIN_KEYSIG 1.0
 #define DEFAULT_LEFT_MARGIN_MENSUR 1.0
 #define DEFAULT_LEFT_MARGIN_METERSIG 1.0
@@ -137,8 +131,8 @@ namespace vrv {
 #define MAX_RIGHT_MARGIN_DEFAULT 10.0
 
 #define DEFAULT_RIGHT_MARGIN_ACCID 0.0
-#define DEFAULT_RIGHT_MARGIN_BARLINE 0.0
-#define DEFAULT_RIGHT_MARGIN_BARLINE_ATTR_LEFT 1.0
+#define DEFAULT_RIGHT_MARGIN_BARLINE 2.0
+#define DEFAULT_RIGHT_MARGIN_BARLINE_ATTR_LEFT 0.0
 #define DEFAULT_RIGHT_MARGIN_BARLINE_ATTR_RIGHT 0.0
 #define DEFAULT_RIGHT_MARGIN_BEATRPT DEFAULT_RIGHT_MARGIN_DEFAULT
 #define DEFAULT_RIGHT_MARGIN_CHORD 0.0
@@ -168,6 +162,9 @@ namespace vrv {
 //----------------------------------------------------------------------------
 // Style
 //----------------------------------------------------------------------------
+
+// the space between the staff and an editorial accid in units
+#define TEMP_ACCID_EDIT_SPACE 3.5 * PARAM_DENOMINATOR
 
 // the space between each lyric line in units
 #define TEMP_LYRIC_LINE_SPACE 5.0 * PARAM_DENOMINATOR
@@ -209,11 +206,11 @@ namespace vrv {
 // Vertical position of center of mensuration sign as distance below top of the staff
 #define MSIGN_STAFFLINES_BELOW_TOP 2.0
 // Size of dot inside mensuration signs relative to space between staff lines
-#define MSIGN_DOT_DIAM 0.4
+#define MSIGN_DOT_DIAM 0.5
 // Relative size of figures in proportions
-#define PROPRT_SIZE_FACTOR 1.0
+#define PROPRT_SIZE_FACTOR 0.5
 // Linewidth for staff lines in mensural notation, rel. to "normal" width of staff lines */
-#define MENSURAL_LINEWIDTH_FACTOR 1.0
+#define MENSURAL_LINEWIDTH_FACTOR 0.5
 
 /**
  * This class contains the document default environment variables.
@@ -325,9 +322,4 @@ public:
 
 } // namespace vrv
 
-<<<<<<< HEAD
-#endif // CUSTOM_VEROVIO_STYLE
-
-=======
->>>>>>> 1b061199f56931e288b80c8b38c5b6eef9451191
 #endif // __VRV_DEF_H__

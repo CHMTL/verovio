@@ -216,14 +216,14 @@ public:
     ///@}
 
 private:
-    /** Describes the maxima-long relationship. **/
+    /** Describes the maxima-longa relationship. **/
     data_MODUSMAIOR m_modusmaior;
-    /** Describes the long-breve relationship. **/
+    /** Describes the longa-brevis relationship. **/
     data_MODUSMINOR m_modusminor;
-    /** Describes the semibreve-minim relationship. **/
-    data_PROLATIO m_prolatio;
-    /** Describes the breve-semibreve relationship. **/
+    /** Describes the brevis-semibrevis relationship. **/
     data_TEMPUS m_tempus;
+    /** Describes the semibrevis-minima relationship. **/
+    data_PROLATIO m_prolatio;
 
     /* include <atttempus> */
 };
