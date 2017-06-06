@@ -8,6 +8,7 @@
 #ifndef __VRV_STYLE_H__
 #define __VRV_STYLE_H__
 
+#define CUSTOM_VEROVIO_STYLE
 #ifdef CUSTOM_VEROVIO_STYLE
 #include "custom_style.h"
 #else

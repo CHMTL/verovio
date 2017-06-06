@@ -1,16 +1,11 @@
 /////////////////////////////////////////////////////////////////////////////
-// Name:        style.h
+// Name:        custom_style.h for CHMTL
 // Author:      Laurent Pugin
 // Created:     2005
 // Copyright (c) Authors and others. All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
 
-#ifndef __VRV_STYLE_H__
-#define __VRV_STYLE_H__
-
 namespace vrv {
-
-#define CHMTL
     
 //----------------------------------------------------------------------------
 // Default layout values
@@ -40,15 +35,11 @@ namespace vrv {
 #define MIN_PAGE_WIDTH 100
 #define MAX_PAGE_WIDTH 60000
 
-#ifdef CHMTL
 #define DEFAULT_BARLINE_WIDTH 1.5
-#else
-#define DEFAULT_BARLINE_WIDTH 3.0
-#endif
 #define MIN_BARLINE_WIDTH 1.0
 #define MAX_BARLINE_WIDTH 8.0
 
-#define DEFAULT_STAFFLINE_WIDTH 2.0
+#define DEFAULT_STAFFLINE_WIDTH 1.0
 #define MIN_STAFFLINE_WIDTH 1.0
 #define MAX_STAFFLINE_WIDTH 8.0
 
@@ -113,7 +104,7 @@ namespace vrv {
 #define DEFAULT_LEFT_MARGIN_BARLINE_ATTR_RIGHT 1.0
 #define DEFAULT_LEFT_MARGIN_BEATRPT 2.0
 #define DEFAULT_LEFT_MARGIN_CHORD 1.0
-#define DEFAULT_LEFT_MARGIN_CLEF 0.5
+#define DEFAULT_LEFT_MARGIN_CLEF 1.0
 #define DEFAULT_LEFT_MARGIN_KEYSIG 1.0
 #define DEFAULT_LEFT_MARGIN_MENSUR 1.0
 #define DEFAULT_LEFT_MARGIN_METERSIG 1.0
@@ -132,7 +123,7 @@ namespace vrv {
 
 #define DEFAULT_RIGHT_MARGIN_ACCID 0.0
 #define DEFAULT_RIGHT_MARGIN_BARLINE 2.0
-#define DEFAULT_RIGHT_MARGIN_BARLINE_ATTR_LEFT 0.0
+#define DEFAULT_RIGHT_MARGIN_BARLINE_ATTR_LEFT 1.0
 #define DEFAULT_RIGHT_MARGIN_BARLINE_ATTR_RIGHT 0.0
 #define DEFAULT_RIGHT_MARGIN_BEATRPT DEFAULT_RIGHT_MARGIN_DEFAULT
 #define DEFAULT_RIGHT_MARGIN_CHORD 0.0
@@ -145,7 +136,7 @@ namespace vrv {
 #define DEFAULT_RIGHT_MARGIN_MULTIREST 0.0
 #define DEFAULT_RIGHT_MARGIN_MULTIRPT 0.0
 #define DEFAULT_RIGHT_MARGIN_NOTE 0.0
-#define DEFAULT_RIGHT_MARGIN_REST 0.0
+#define DEFAULT_RIGHT_MARGIN_REST 1.0
 
 /** Bottom margins */
 
@@ -181,8 +172,6 @@ namespace vrv {
 /* Style parameters for mensural notation */
 // Ratios of mensural notehead, accidental, aug. dot size to CMN for the same staff size
 
-#ifdef CHMTL
-
 // In the absence of a proper mensural font, these values give relatively good results.
 #define TEMP_MNOTEHEAD_SIZE_FACTOR 0.80
 #define TEMP_MACCID_SIZE_FACTOR 0.80
@@ -190,23 +179,12 @@ namespace vrv {
 // Width of the minima diamond relative to its height (black notation only)
 #define TEMP_MINIMA_WIDTH_FACTOR 0.60
 
-#else
-
-// These values give results that look like what standard Verovio does.
-#define TEMP_MNOTEHEAD_SIZE_FACTOR 1.0
-#define TEMP_MACCID_SIZE_FACTOR 1.0
-#define TEMP_MAUGDOT_SIZE_FACTOR 1.0
-// Width of the minima diamond relative to its height (black notation only)
-#define TEMP_MINIMA_WIDTH_FACTOR 1.0
-
-#endif
-
 // Size of mensuration sign circle relative to space between staff lines
 #define MSIGN_CIRCLE_DIAM 1.7
 // Vertical position of center of mensuration sign as distance below top of the staff
 #define MSIGN_STAFFLINES_BELOW_TOP 2.0
 // Size of dot inside mensuration signs relative to space between staff lines
-#define MSIGN_DOT_DIAM 0.5
+#define MSIGN_DOT_DIAM 0.4
 // Relative size of figures in proportions
 #define PROPRT_SIZE_FACTOR 0.5
 // Linewidth for staff lines in mensural notation, rel. to "normal" width of staff lines */
@@ -322,4 +300,3 @@ public:
 
 } // namespace vrv
 
-#endif // __VRV_DEF_H__

@@ -235,7 +235,7 @@ void View::DrawMensuralStem(DeviceContext *dc, LayerElement *object, Staff *staf
     if (drawingCueSize) {
         baseStem = m_doc->GetCueSize(baseStem);
         flagStemHeight = m_doc->GetCueSize(flagStemHeight);
-    }
+    } 
 
     nbFlags = (mensural_black ? drawingDur - DUR_2 : drawingDur - DUR_4);
     totalFlagStemHeight = flagStemHeight * (nbFlags * 2 - 1) / 2;
