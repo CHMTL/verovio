@@ -690,9 +690,10 @@ int LayerElement::SetAlignmentPitchPos(FunctorParams *functorParams)
         assert(chord);
         Note *note = chord->GetTopNote();
         assert(note);
+        // Set note's vertical position based on its pitch, but, if it has a raw staff position,
+        // reset it from that.
         int loc = PitchInterface::CalcLoc(note->GetPname(), note->GetOct(), layerY->GetClefLocOffset(layerElementY));
-        // Once we have AttLoc on Note
-        // if (note->HasLoc()) loc = note->GetLoc();
+        if (note->HasLoc()) loc = note->GetLoc();
         this->SetDrawingYRel(staffY->CalcPitchPosYRel(params->m_doc, loc));
     }
     else if (this->Is({ CUSTOS, DOT })) {
@@ -704,9 +705,10 @@ int LayerElement::SetAlignmentPitchPos(FunctorParams *functorParams)
         Note *note = dynamic_cast<Note *>(this);
         assert(note);
         Chord *chord = note->IsChordTone();
+        // Set note's vertical position based on its pitch, but, if it has a raw staff position,
+        // reset it from that.
         int loc = PitchInterface::CalcLoc(note->GetPname(), note->GetOct(), layerY->GetClefLocOffset(layerElementY));
-        // Once we have AttLoc on Note
-        // if (note->HasLoc()) loc = note->GetLoc();
+        if (note->HasLoc()) loc = note->GetLoc();
         int yRel = staffY->CalcPitchPosYRel(params->m_doc, loc);
         // Make it relative to the top note one (see above) but not for cross-staff notes in chords
         if (chord && !m_crossStaff) {

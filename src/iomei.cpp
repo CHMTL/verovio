@@ -1197,6 +1197,7 @@ void MeiOutput::WriteMeiRest(pugi::xml_node currentNode, Rest *rest)
     WritePositionInterface(currentNode, rest);
     rest->WriteColor(currentNode);
     rest->WriteRelativesize(currentNode);
+    rest->WriteRestVisMensural(currentNode);
 }
 
 void MeiOutput::WriteMeiProport(pugi::xml_node currentNode, Proport *proport)
@@ -3123,6 +3124,7 @@ bool MeiInput::ReadMeiNote(Object *parent, pugi::xml_node note)
 
     ReadDurationInterface(note, vrvNote);
     ReadPitchInterface(note, vrvNote);
+    ReadPositionInterface(note, vrvNote);
     vrvNote->ReadColor(note);
     vrvNote->ReadColoration(note);
     vrvNote->ReadGraced(note);

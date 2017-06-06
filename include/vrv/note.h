@@ -20,6 +20,7 @@
 #include "durationinterface.h"
 #include "layerelement.h"
 #include "pitchinterface.h"
+#include "positioninterface.h"
 
 namespace vrv {
 
@@ -43,6 +44,7 @@ class Note : public LayerElement,
              public StemmedDrawingInterface,
              public DurationInterface,
              public PitchInterface,
+             public PositionInterface,
              public AttColor,
              public AttColoration,
              public AttGraced,

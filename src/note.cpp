@@ -40,6 +40,7 @@ Note::Note()
     , StemmedDrawingInterface()
     , DurationInterface()
     , PitchInterface()
+    , PositionInterface()
     , AttColor()
     , AttColoration()
     , AttGraced()
@@ -52,6 +53,7 @@ Note::Note()
 {
     RegisterInterface(DurationInterface::GetAttClasses(), DurationInterface::IsInterface());
     RegisterInterface(PitchInterface::GetAttClasses(), PitchInterface::IsInterface());
+    RegisterInterface(PositionInterface::GetAttClasses(), PositionInterface::IsInterface());
     RegisterAttClass(ATT_COLOR);
     RegisterAttClass(ATT_COLORATION);
     RegisterAttClass(ATT_GRACED);
@@ -81,6 +83,7 @@ void Note::Reset()
     StemmedDrawingInterface::Reset();
     DurationInterface::Reset();
     PitchInterface::Reset();
+    PositionInterface::Reset();
     ResetColor();
     ResetColoration();
     ResetGraced();
@@ -247,7 +250,7 @@ Point Note::GetStemUpSE(Doc *doc, int staffSize, bool graceSize)
     wchar_t code = SMUFL_E0A4_noteheadBlack;
     
     // This is never called for now because mensural notes do not have stem/flag children
-    // For changingg this, change Note::CalcStem and Note::PrepareLayerElementParts
+    // To change this, change Note::CalcStem and Note::PrepareLayerElementParts
     if (this->IsMensural()) {
         // For mensural notation, get the code and adjust the default stem position
         code = this->GetMensuralSmuflNoteHead();
@@ -741,7 +744,7 @@ int Note::ResetHorizontalAlignment(FunctorParams *functorParams)
     m_drawingLoc = 0;
     m_flippedNotehead = false;
 
-    return FUNCTOR_CONTINUE;
+    return FUNCTOR_CONTINUE;    
 }
 
 } // namespace vrv
