@@ -155,11 +155,19 @@ void View::DrawMensuralRest(DeviceContext *dc, LayerElement *element, Layer *lay
     bool drawingCueSize = rest->IsCueSize();
     int drawingDur = rest->GetActualDur();
     int x = element->GetDrawingX();
-    int y = element->GetDrawingY();
+    int yStaffTop = staff->GetDrawingY();
+    
+    if (drawingDur==DUR_MX || drawingDur==DUR_LG) {
+        DrawMaximaOrLongaRest(dc, x, yStaffTop, element, staff);
+        return;
+    }
+
+    if (drawingDur > DUR_2) {
+        x -= m_doc->GetGlyphWidth(SMUFL_E0A3_noteheadHalf, staff->m_drawingStaffSize,
+                                  drawingCueSize) / 2;
+    }
 
     switch (drawingDur) {
-        case DUR_MX: charCode = SMUFL_E9F0_mensuralRestMaxima; break;
-        case DUR_LG: charCode = SMUFL_E9F2_mensuralRestLongaImperfecta; break;
         case DUR_BR: charCode = SMUFL_E9F3_mensuralRestBrevis; break;
         case DUR_1: charCode = SMUFL_E9F4_mensuralRestSemibrevis; break;
         case DUR_2: charCode = SMUFL_E9F5_mensuralRestMinima; break;
@@ -169,7 +177,12 @@ void View::DrawMensuralRest(DeviceContext *dc, LayerElement *element, Layer *lay
         default:
             charCode = 0; // This should never happen
     }
-    DrawSmuflCode(dc, x, y, charCode, staff->m_drawingStaffSize, drawingCueSize);
+
+    // Duration is brevis or shorter.
+    int yOffset;
+    if (staff->m_drawingLines==1) yOffset = staff->m_drawingStaffSize;
+    else yOffset = (14*staff->m_drawingStaffSize)/4;
+    DrawSmuflCode(dc, x, yStaffTop-yOffset, charCode, staff->m_drawingStaffSize, false);
 }
 
 void View::DrawMensur(DeviceContext *dc, LayerElement *element, Layer *layer, Staff *staff, Measure *measure)
@@ -245,8 +258,8 @@ void View::DrawMensuralStem(DeviceContext *dc, LayerElement *object, Staff *staf
     totalFlagStemHeight = flagStemHeight * (nbFlags * 2 - 1) / 2;
 
     /* SMuFL provides combining stem-and-flag characters with one and two flags, but
-        at the moment, I'm using only the one flag ones, partly out of concern for
-        possible three-flag notes. */
+        white notation can require three or even four flags, so we use only the one flag
+        chars.
 
     /* In black notation, the semiminima gets one flag; in white notation, it gets none.
         In both cases, as in CWMN, each shorter duration gets one additional flag. */
@@ -295,8 +308,9 @@ void View::DrawMensuralStem(DeviceContext *dc, LayerElement *object, Staff *staf
 
         if (nbFlags > 0) {
             for (int i = 0; i < nbFlags; i++)
-                DrawSmuflCode(dc, x2 - halfStemWidth, stemY1 - i * flagStemHeight,
-                    SMUFL_E949_mensuralCombStemUpFlagSemiminima, staff->m_drawingStaffSize, drawingCueSize);
+                DrawSmuflCode(dc, x2 - halfStemWidth, stemY1 + (i * flagStemHeight),
+                    SMUFL_E949_mensuralCombStemUpFlagSemiminima,
+                    staff->m_drawingStaffSize, drawingCueSize);
         }
         else
             DrawFilledRectangle(dc, x2 - halfStemWidth, stemY1, x2 + halfStemWidth, stemY2);
@@ -455,7 +469,6 @@ void View::DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, L
     // Mensural noteheads are usually quite a bit smaller than CMN noteheads for the same size
     // staff; use _pseudoStaffSize_ to force this for fonts that don't consider that fact.
     int pseudoStaffSize = (int)(TEMP_MNOTEHEAD_SIZE_FACTOR * staff->m_drawingStaffSize);
-
     int xn, xLeft, xRight, yTop, yBottom, y3, y4;
     // int yy2, y5; // unused
     int up, height;
@@ -520,6 +533,74 @@ void View::DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, L
     return;
 }
 
+
+void View::DrawMaximaOrLongaRest(DeviceContext *dc, int x, int yStaffTop, LayerElement *element, Staff *staff)
+{
+    Rest *rest = dynamic_cast<Rest *>(element);
+
+    dc->StartGraphic(element, "", element->GetUuid());
+    
+    int drawingDur = rest->GetActualDur();
+    int nominalStaffSize = m_doc->GetDrawingStaffSize(staff->m_drawingStaffSize);
+    int staffSpace = nominalStaffSize/4;
+    int yStaffBottom = yStaffTop - ((staff->m_drawingLines-1)*staffSpace);
+    int loc, nSpaces;
+    int yLineBottom, yLineTop;
+    
+    // Set default vertical position offset and height, both in staff spaces (called
+    //   "double units" elsewhere in Verovio).
+    if (staff->m_drawingLines==5) {
+        loc = 2;
+        nSpaces = 2;
+    }
+    else {
+        // ??Surely we can come up with better defaults for other numbers of staff lines!
+        loc = 0;
+        nSpaces = staff->m_drawingLines-1;
+    }
+
+    if (rest->HasLoc()) loc = rest->GetLoc();
+    if (rest->HasSpaces()) nSpaces = rest->GetSpaces();
+
+    yLineBottom = yStaffBottom+(loc*staffSpace/2);
+    
+    // The staff's m_drawingStaffSize seems always to be set as if it has 5 lines;
+    //   correct for the actual number of lines. On one-line staves, draw rest
+    //   from 1/2 space above the line to 1/2 space below.
+    
+    if (staff->m_drawingLines==1) {
+        yLineBottom = yStaffTop - (nominalStaffSize/8);
+        DrawRestLines(dc, x, yLineBottom, yLineBottom+staffSpace, drawingDur);
+    }
+    else {
+        yLineTop = yLineBottom+(nSpaces*staffSpace);
+        DrawRestLines(dc, x, yLineBottom, yLineTop, drawingDur);
+    }
+    dc->EndGraphic(element, this);
+}
+
+
+void View::DrawRestLines(DeviceContext *dc, int x, int y_top, int y_bottom, int drawingDur)
+{
+    assert(dc);
+    
+#ifdef NOTYET
+    int restLineWidth = m_doc->GetDrawingLongMensRestLineWidth(100, false);
+#else
+    int restLineWidth = 25;
+#endif
+    if (drawingDur==DUR_MX) {
+        // Draw the two lines close enough together that it's obvious they're one symbol.
+        int x1 = x - (int)(0.80*restLineWidth);
+        int x2 = x + (int)(0.80*restLineWidth);
+        DrawVerticalLine(dc, y_top, y_bottom, x1, restLineWidth);
+        DrawVerticalLine(dc, y_top, y_bottom, x2, restLineWidth);
+    }
+    else
+        DrawVerticalLine(dc, y_top, y_bottom, x, restLineWidth);
+}
+
+    
 void View::DrawLigature(DeviceContext *dc, LayerElement *element, Layer *layer, Staff *staff, Measure *measure)
 {
     assert(dc);
