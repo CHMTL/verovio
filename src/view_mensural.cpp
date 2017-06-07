@@ -148,6 +148,7 @@ void View::DrawMensuralRest(DeviceContext *dc, LayerElement *element, Layer *lay
     assert(measure);
 
     wchar_t charCode;
+    int loc;
 
     Rest *rest = dynamic_cast<Rest *>(element);
     assert(rest);
@@ -156,9 +157,12 @@ void View::DrawMensuralRest(DeviceContext *dc, LayerElement *element, Layer *lay
     int drawingDur = rest->GetActualDur();
     int x = element->GetDrawingX();
     int yStaffTop = staff->GetDrawingY();
+
+    if (rest->HasLoc()) loc = rest->GetLoc();
+    else loc = DefaultMensuralRestLoc(drawingDur, staff);
     
     if (drawingDur==DUR_MX || drawingDur==DUR_LG) {
-        DrawMaximaOrLongaRest(dc, x, yStaffTop, element, staff);
+        DrawMaximaOrLongaRest(dc, x, yStaffTop, element, loc, staff);
         return;
     }
 
@@ -179,10 +183,30 @@ void View::DrawMensuralRest(DeviceContext *dc, LayerElement *element, Layer *lay
     }
 
     // Duration is brevis or shorter.
-    int yOffset;
-    if (staff->m_drawingLines==1) yOffset = staff->m_drawingStaffSize;
-    else yOffset = (14*staff->m_drawingStaffSize)/4;
-    DrawSmuflCode(dc, x, yStaffTop-yOffset, charCode, staff->m_drawingStaffSize, false);
+    int nominalStaffSize = m_doc->GetDrawingStaffSize(staff->m_drawingStaffSize);
+    int staffSpace = nominalStaffSize/4;
+    int yStaffBottom = yStaffTop - ((staff->m_drawingLines-1)*staffSpace);
+    int yOffset = (loc*staffSpace)/2;
+    DrawSmuflCode(dc, x, yStaffBottom+yOffset, charCode, staff->m_drawingStaffSize, false);
+}
+
+int View::DefaultMensuralRestLoc(int drawingDur, Staff *staff)
+{
+    int loc;
+    // Set default vertical position offset, in staff half-spaces (called "units" elsewhere
+    // in Verovio).
+    if (staff->m_drawingLines==5) {
+        loc = (drawingDur==DUR_MX || drawingDur==DUR_LG) ? 2 : 4;
+    }
+    else if (staff->m_drawingLines==1) {
+        loc = (drawingDur==DUR_MX || drawingDur==DUR_LG) ? 0 : -1;
+    }
+    else
+        // Surely we can come up with better defaults for other numbers of staff lines, but it
+        // may not be at all important.
+        loc = 0;
+    
+    return loc;
 }
 
 void View::DrawMensur(DeviceContext *dc, LayerElement *element, Layer *layer, Staff *staff, Measure *measure)
@@ -261,7 +285,7 @@ void View::DrawMensuralStem(DeviceContext *dc, LayerElement *object, Staff *staf
         white notation can require three or even four flags, so we use only the one flag
         chars.
 
-    /* In black notation, the semiminima gets one flag; in white notation, it gets none.
+        In black notation, the semiminima gets one flag; in white notation, it gets none.
         In both cases, as in CWMN, each shorter duration gets one additional flag. */
 
     if (dir == STEMDIRECTION_down) {
@@ -534,7 +558,7 @@ void View::DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, L
 }
 
 
-void View::DrawMaximaOrLongaRest(DeviceContext *dc, int x, int yStaffTop, LayerElement *element, Staff *staff)
+void View::DrawMaximaOrLongaRest(DeviceContext *dc, int x, int yStaffTop, LayerElement *element, int loc, Staff *staff)
 {
     Rest *rest = dynamic_cast<Rest *>(element);
 
@@ -544,20 +568,15 @@ void View::DrawMaximaOrLongaRest(DeviceContext *dc, int x, int yStaffTop, LayerE
     int nominalStaffSize = m_doc->GetDrawingStaffSize(staff->m_drawingStaffSize);
     int staffSpace = nominalStaffSize/4;
     int yStaffBottom = yStaffTop - ((staff->m_drawingLines-1)*staffSpace);
-    int loc, nSpaces;
+    int nSpaces;
     int yLineBottom, yLineTop;
     
-    // Set default vertical position offset and height, both in staff spaces (called
-    //   "double units" elsewhere in Verovio).
-    if (staff->m_drawingLines==5) {
-        loc = 2;
+    // Set default height, in staff spaces (called "double units" elsewhere in Verovio).
+    if (staff->m_drawingLines==5)
         nSpaces = 2;
-    }
-    else {
+    else
         // ??Surely we can come up with better defaults for other numbers of staff lines!
-        loc = 0;
         nSpaces = staff->m_drawingLines-1;
-    }
 
     if (rest->HasLoc()) loc = rest->GetLoc();
     if (rest->HasSpaces()) nSpaces = rest->GetSpaces();
