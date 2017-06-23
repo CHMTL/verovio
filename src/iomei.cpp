@@ -3028,7 +3028,6 @@ bool MeiInput::ReadMeiLigature(Object *parent, pugi::xml_node ligature)
     vrvLigature->ReadStems(ligature);
     vrvLigature->ReadStemsCmn(ligature);
     vrvLigature->ReadTiepresent(ligature);
-    //vrvLigature->ReadForm(ligature);
 
     parent->AddChild(vrvLigature);
     return ReadMeiLayerChildren(vrvLigature, ligature, vrvLigature);
@@ -3134,7 +3133,6 @@ bool MeiInput::ReadMeiNote(Object *parent, pugi::xml_node note)
     vrvNote->ReadStemsCmn(note);
     vrvNote->ReadTiepresent(note);
     vrvNote->ReadVisibility(note);
-//    vrvNote->ReadStaffloc(note);
     
     AttArticulation artic;
     artic.ReadArticulation(note);
