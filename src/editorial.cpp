@@ -21,6 +21,7 @@
 #include "section.h"
 #include "staff.h"
 #include "system.h"
+#include "text.h"
 #include "textelement.h"
 #include "vrv.h"
 
@@ -30,20 +31,18 @@ namespace vrv {
 // EditorialElement
 //----------------------------------------------------------------------------
 
-EditorialElement::EditorialElement() : Object("ee-"), BoundaryStartInterface(), AttCommon(), AttCommonPart(), AttTyped()
+EditorialElement::EditorialElement() : Object("ee-"), BoundaryStartInterface(), AttLabelled(), AttTyped()
 {
-    RegisterAttClass(ATT_COMMON);
-    RegisterAttClass(ATT_COMMONPART);
+    RegisterAttClass(ATT_LABELLED);
     RegisterAttClass(ATT_TYPED);
 
     Reset();
 }
 
 EditorialElement::EditorialElement(std::string classid)
-    : Object(classid), vrv::BoundaryStartInterface(), AttCommon(), AttCommonPart(), AttTyped()
+    : Object(classid), vrv::BoundaryStartInterface(), AttLabelled(), AttTyped()
 {
-    RegisterAttClass(ATT_COMMON);
-    RegisterAttClass(ATT_COMMONPART);
+    RegisterAttClass(ATT_LABELLED);
     RegisterAttClass(ATT_TYPED);
 
     Reset();
@@ -53,8 +52,7 @@ void EditorialElement::Reset()
 {
     Object::Reset();
     BoundaryStartInterface::Reset();
-    ResetCommon();
-    ResetCommonPart();
+    ResetLabelled();
     ResetTyped();
 
     m_visibility = Visible;
@@ -155,7 +153,7 @@ void Add::Reset()
 // Annot
 //----------------------------------------------------------------------------
 
-Annot::Annot() : EditorialElement("annot-"), AttPlist(), AttSource()
+Annot::Annot() : EditorialElement("annot-"), TextListInterface(), AttPlist(), AttSource()
 {
     RegisterAttClass(ATT_PLIST);
     RegisterAttClass(ATT_SOURCE);
@@ -172,6 +170,24 @@ void Annot::Reset()
     EditorialElement::Reset();
     ResetPlist();
     ResetSource();
+}
+
+void Annot::AddChild(Object *child)
+{
+    if (child->IsTextElement()) {
+        assert(dynamic_cast<TextElement *>(child));
+    }
+    else if (child->Is(ANNOT)) {
+        assert(dynamic_cast<Annot *>(child));
+    }
+    else {
+        LogError("Adding '%s' to a '%s'", child->GetClassName().c_str(), this->GetClassName().c_str());
+        assert(false);
+    }
+
+    child->SetParent(this);
+    m_children.push_back(child);
+    Modify();
 }
 
 //----------------------------------------------------------------------------

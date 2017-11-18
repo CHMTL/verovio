@@ -53,7 +53,7 @@ public:
     ///@}
 
     void SetCurrentFloatingPositioner(FloatingPositioner *boundingBox);
-    FloatingPositioner *GetCurrentFloatingPositioner() { return m_currentPositioner; }
+    FloatingPositioner *GetCurrentFloatingPositioner() const { return m_currentPositioner; }
 
     /**
      * @name Get and set the drawing group id for linking floating element horizontally
@@ -151,18 +151,21 @@ public:
 
     bool CalcDrawingYRel(Doc *doc, StaffAlignment *staffAlignment, BoundingBox *horizOverlapingBBox);
 
-    data_STAFFREL GetDrawingPlace() const { return m_place; }
+    data_STAFFREL_basic GetDrawingPlace() const { return m_place; }
 
     void UpdateCurvePosition(const Point points[4], float angle, int thickness, curvature_CURVEDIR curveDir);
 
     int CalcXMinMaxY(const Point points[4]);
 
     /**
-     * @name Get and set the Y drawing relative position
+     * @name Get and set the X and Y drawing relative position.
+     * (X is currently used only for Arpeg)
      */
     ///@{
     int GetDrawingYRel() const { return m_drawingYRel; }
     virtual void SetDrawingYRel(int drawingYRel);
+    int GetDrawingXRel() const { return m_drawingXRel; }
+    virtual void SetDrawingXRel(int drawingXRel);
     ///@}
 
 private:
@@ -171,6 +174,12 @@ private:
 
 protected:
     /**
+     * The X drawing relative position of the object.
+     * Arpeg are positionned according to the top note through the FloatingPositioner
+     * (See View::DrawArpeg that sets the FloatingPositioner)
+     */
+    int m_drawingXRel;
+    /**
      * The Y drawing relative position of the object.
      * It is re-computed everytime the object is drawn and it is not stored in the file.
      */
@@ -178,7 +187,7 @@ protected:
 
     FloatingObject *m_object;
 
-    data_STAFFREL m_place;
+    data_STAFFREL_basic m_place;
 
 public:
     Point m_cuvrePoints[4];

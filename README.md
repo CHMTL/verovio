@@ -1,6 +1,3 @@
-This repository is for development of CHMTL Verovio, a library and standalone tool for generating mensural notation from MEI; standard Verovio is designed for any kind of music notation. To facilitate working with the developers of standard Verovio and minimize confusion, instead of the usual branch, _develop_, we're using the _develop-mensural-chmtl_ branch for our own development and _develop-mensural_ to share work with them. The below information is from the README for the standard version of Verovio.
-
-----
 Verovio is a fast, portable and lightweight library for engraving [Music Encoding Initiative (MEI)](http://www.music-encoding.org) music scores into SVG. Verovio can be used as a standalone command-line tool for converting a MEI files, as the music rendering library for applications, or it can be compiled to Javascript using the Emscripten LLVM-to-JavaScript compiler.
 
 See the JavaScript toolkit running in the [MEI Viewer](http://www.verovio.org/mei-viewer.xhtml) and check out the [tutorial](http://www.verovio.org/tutorial.xhtml) for its web integration and for enabling user interaction.

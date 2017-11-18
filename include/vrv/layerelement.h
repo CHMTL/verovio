@@ -29,7 +29,7 @@ class Staff;
  * This class is a base class for the Layer (<layer>) content.
  * It is not an abstract class but should not be instantiated directly.
  */
-class LayerElement : public Object, public AttCommon, public AttTyped {
+class LayerElement : public Object, public AttLabelled, public AttTyped {
 public:
     /**
      * @name Constructors, destructors, reset and class name methods
@@ -78,9 +78,9 @@ public:
     /** Return true if the element is a grace note */
     bool IsGraceNote();
     /** Return true if the element is has to be rederred as cue sized */
-    bool IsCueSize();
+    bool GetDrawingCueSize();
     /** Return true if the element is a note within a ligature */
-    bool IsInLigature();
+    bool IsInLigature() const;
     /** Return true if the element is a note or a chord within a fTrem */
     bool IsInFTrem();
     /**
@@ -127,12 +127,17 @@ public:
      * Returns the drawing top and bottom taking into accound stem, etc.
      * We pass the doc as parameter in order to have access to the current drawing parameters.
      * withArtic specifies if the articulation sign needs to be taken into account or not.
-     * articPartType indicates if the inside or outside artic part has to be taken into
-     * account (inside is taken into account in any case)
+     * articPartType indicates if the inside or outside artic part has to be taken into account (inside is taken
+     * into account in any case)
      */
     int GetDrawingTop(Doc *doc, int staffSize, bool withArtic = true, ArticPartType articPartType = ARTIC_PART_INSIDE);
     int GetDrawingBottom(
         Doc *doc, int staffSize, bool withArtic = true, ArticPartType articPartType = ARTIC_PART_INSIDE);
+
+    /**
+     * Return the drawing radius for notes and chords
+     */
+    int GetDrawingRadius(Doc *doc);
 
     /**
      * Alignment getter
@@ -158,7 +163,7 @@ public:
     /**
      * Returns the duration if the child element has a DurationInterface
      */
-    double GetAlignmentDuration(Mensur *mensur = NULL, MeterSig *meterSig = NULL, bool notGraceOnly = true);
+    double GetAlignmentDuration(Mensur *mensur = NULL, MeterSig *meterSig = NULL, bool notGraceOnly = true, data_NOTATIONTYPE notationType = NOTATIONTYPE_cmn);
 
     //----------//
     // Functors //
@@ -240,17 +245,18 @@ public:
     virtual int FindTimeSpanningLayerElements(FunctorParams *functorParams);
 
     /**
-     * See Object::GenerateMIDI
+     * See Object::CalcOnsetOffset
      */
     ///@{
-    virtual int GenerateMIDI(FunctorParams *functorParams);
-    virtual int GenerateMIDIEnd(FunctorParams *functorParams);
+    virtual int CalcOnsetOffset(FunctorParams *functorParams);
     ///@}
 
     /**
-     * See Object::CalcMaxMeasureDuration
+     * See Object::ResolveMIDITies
      */
-    virtual int CalcMaxMeasureDuration(FunctorParams *functorParams);
+    ///@{
+    virtual int ResolveMIDITies(FunctorParams *);
+    ///@}
 
     /**
      * See Object::ResetDrawing
@@ -258,7 +264,7 @@ public:
     virtual int ResetDrawing(FunctorParams *);
 
 private:
-    int GetDrawingArticulationTopOrBottom(data_STAFFREL place, ArticPartType type);
+    int GetDrawingArticulationTopOrBottom(data_STAFFREL_basic place, ArticPartType type);
 
 public:
     /** Absolute position X. This is used for facsimile (transcription) encoding */
@@ -294,15 +300,17 @@ protected:
      */
     int m_drawingXRel;
 
+    /**
+     * The cached drawing cue size set by PrepareDarwingCueSize
+     */
+    bool m_drawingCueSize;
+
 private:
     /**
      * Indicates whether it is a ScoreDef or StaffDef attribute
      */
     ElementScoreDefRole m_scoreDefRole;
-    /**
-     * The cached drawing cue size set by PrepareDarwingCueSize
-     */
-    bool m_drawingCueSize;
+
     /**
      * The cached alignment layer @n.
      * This also stores the negative values for identifying cross-staff

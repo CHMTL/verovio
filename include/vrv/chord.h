@@ -34,11 +34,11 @@ class Chord : public LayerElement,
               public StemmedDrawingInterface,
               public DurationInterface,
               public AttColor,
+              public AttCue,
               public AttGraced,
-              public AttRelativesize,
               public AttStems,
               public AttStemsCmn,
-              public AttTiepresent,
+              public AttTiePresent,
               public AttVisibility {
 public:
     /**
@@ -123,8 +123,8 @@ public:
      * If necessary look at the glyph anchor (if any).
      */
     ///@{
-    virtual Point GetStemUpSE(Doc *doc, int staffSize, bool graceSize);
-    virtual Point GetStemDownNW(Doc *doc, int staffSize, bool graceSize);
+    virtual Point GetStemUpSE(Doc *doc, int staffSize, bool isCueSize);
+    virtual Point GetStemDownNW(Doc *doc, int staffSize, bool isCueSize);
     ///@}
 
     //----------//
@@ -151,6 +151,11 @@ public:
      */
     virtual int PrepareTieAttr(FunctorParams *functorParams);
     virtual int PrepareTieAttrEnd(FunctorParams *functorParams);
+
+    /**
+     * See Object::GenerateMIDIEnd
+     */
+    virtual int CalcOnsetOffsetEnd(FunctorParams *functorParams);
 
 protected:
     /**

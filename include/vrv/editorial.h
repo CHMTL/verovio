@@ -37,11 +37,7 @@ enum VisibilityType { Hidden = 0, Visible };
  * It is not an abstract class but should not be instantiated directly.
  * It can be both a container (in score-based MEI) and a boundary (in page-based MEI).
  */
-class EditorialElement : public Object,
-                         public BoundaryStartInterface,
-                         public AttCommon,
-                         public AttCommonPart,
-                         public AttTyped {
+class EditorialElement : public Object, public BoundaryStartInterface, public AttLabelled, public AttTyped {
 public:
     /**
      * @name Constructors, destructors, reset and class name methods
@@ -159,7 +155,7 @@ private:
 // Annot
 //----------------------------------------------------------------------------
 
-class Annot : public EditorialElement, public AttPlist, public AttSource {
+class Annot : public EditorialElement, public TextListInterface, public AttPlist, public AttSource {
 public:
     /**
      * @name Constructors, destructors, and other standard methods
@@ -172,6 +168,12 @@ public:
     virtual std::string GetClassName() const { return "Annot"; }
     virtual ClassId GetClassId() const { return ANNOT; }
     ///@}
+
+    /**
+     * Add a text element to an annotation.
+     * Only supported elements will be actually added to the child list.
+     */
+    virtual void AddChild(Object *object);
 
 private:
     //

@@ -62,6 +62,7 @@ Toolkit::Toolkit(bool initFont)
     m_noLayout = false;
     m_ignoreLayout = false;
     m_adjustPageHeight = false;
+    m_mmOutput = false;
     m_noJustification = false;
     m_evenNoteSpacing = false;
     m_showBoundingBoxes = false;
@@ -184,7 +185,7 @@ bool Toolkit::SetSpacingNonLinear(float spacingNonLinear)
 
 bool Toolkit::SetOutputFormat(std::string const &outformat)
 {
-    if (outformat == "humdrum") {
+    if ((outformat == "humdrum") || (outformat == "hum")) {
         m_outformat = HUMDRUM;
     }
     else if (outformat == "mei") {
@@ -193,8 +194,11 @@ bool Toolkit::SetOutputFormat(std::string const &outformat)
     else if (outformat == "midi") {
         m_outformat = MIDI;
     }
+    else if (outformat == "timemap") {
+        m_outformat = TIMEMAP;
+    }
     else if (outformat != "svg") {
-        LogError("Output format can only be: mei, humdrum, midi or svg");
+        LogError("Output format can only be: mei, humdrum, midi, timemap or svg");
         return false;
     }
     return true;
@@ -208,7 +212,7 @@ bool Toolkit::SetFormat(std::string const &informat)
     else if (informat == "darms") {
         m_format = DARMS;
     }
-    else if (informat == "humdrum") {
+    else if ((informat == "humdrum") || (informat == "hum")) {
         m_format = HUMDRUM;
     }
     else if (informat == "mei") {
@@ -219,6 +223,12 @@ bool Toolkit::SetFormat(std::string const &informat)
     }
     else if (informat == "musicxml-hum") {
         m_format = MUSICXMLHUM;
+    }
+    else if (informat == "mei-hum") {
+        m_format = MEIHUM;
+    }
+    else if (informat == "esac") {
+        m_format = ESAC;
     }
     else if (informat == "auto") {
         m_format = AUTO;
@@ -328,6 +338,7 @@ FileFormat Toolkit::IdentifyInputFormat(const string &data)
 
 bool Toolkit::SetFont(std::string const &font)
 {
+    m_doc.SetDrawingSmuflFontName(font);
     return Resources::SetFont(font);
 };
 
@@ -415,10 +426,20 @@ bool Toolkit::LoadData(const std::string &data)
     }
 
     if (inputFormat == PAE) {
+#ifndef NO_PAE_SUPPORT
         input = new PaeInput(&m_doc, "");
+#else
+        LogError("Plaine & Easie import is not supported in this build.");
+        return false;
+#endif
     }
     else if (inputFormat == DARMS) {
+#ifndef NO_DARMS_SUPPORT
         input = new DarmsInput(&m_doc, "");
+#else
+        LogError("DARMS import is not supported in this build.");
+        return false;
+#endif
     }
 #ifndef NO_HUMDRUM_SUPPORT
     else if (inputFormat == HUMDRUM) {
@@ -468,7 +489,65 @@ bool Toolkit::LoadData(const std::string &data)
         stringstream conversion;
         bool status = converter.convert(conversion, xmlfile);
         if (!status) {
-            LogError("Error converting MusicXML");
+            LogError("Error converting MusicXML data");
+            return false;
+        }
+        std::string buffer = conversion.str();
+        SetHumdrumBuffer(buffer.c_str());
+
+        // Now convert Humdrum into MEI:
+        Doc tempdoc;
+        FileInputStream *tempinput = new HumdrumInput(&tempdoc, "");
+        tempinput->SetTypeOption(GetHumType());
+        if (!tempinput->ImportString(conversion.str())) {
+            LogError("Error importing Humdrum data");
+            delete tempinput;
+            return false;
+        }
+        MeiOutput meioutput(&tempdoc, "");
+        meioutput.SetScoreBasedMEI(true);
+        newData = meioutput.GetOutput();
+        delete tempinput;
+        input = new MeiInput(&m_doc, "");
+    }
+
+    else if (inputFormat == MEIHUM) {
+        // This is the indirect converter from MusicXML to MEI using iohumdrum:
+        hum::Tool_mei2hum converter;
+        pugi::xml_document xmlfile;
+        xmlfile.load(data.c_str());
+        stringstream conversion;
+        bool status = converter.convert(conversion, xmlfile);
+        if (!status) {
+            LogError("Error converting MEI data");
+            return false;
+        }
+        std::string buffer = conversion.str();
+        SetHumdrumBuffer(buffer.c_str());
+
+        // Now convert Humdrum into MEI:
+        Doc tempdoc;
+        FileInputStream *tempinput = new HumdrumInput(&tempdoc, "");
+        tempinput->SetTypeOption(GetHumType());
+        if (!tempinput->ImportString(conversion.str())) {
+            LogError("Error importing Humdrum data");
+            delete tempinput;
+            return false;
+        }
+        MeiOutput meioutput(&tempdoc, "");
+        meioutput.SetScoreBasedMEI(true);
+        newData = meioutput.GetOutput();
+        delete tempinput;
+        input = new MeiInput(&m_doc, "");
+    }
+
+    else if (inputFormat == ESAC) {
+        // This is the indirect converter from EsAC to MEI using iohumdrum:
+        hum::Tool_esac2hum converter;
+        stringstream conversion;
+        bool status = converter.convert(conversion, data);
+        if (!status) {
+            LogError("Error converting EsAC data");
             return false;
         }
         std::string buffer = conversion.str();
@@ -601,6 +680,8 @@ bool Toolkit::ParseOptions(const std::string &json_options)
 
     if (json.has<jsonxx::String>("font")) SetFont(json.get<jsonxx::String>("font"));
 
+    if (json.has<jsonxx::Number>("mmOutput")) SetMMOutput(json.get<jsonxx::Number>("mmOutput"));
+
     if (json.has<jsonxx::Number>("pageWidth")) SetPageWidth(json.get<jsonxx::Number>("pageWidth"));
 
     if (json.has<jsonxx::Number>("pageHeight")) SetPageHeight(json.get<jsonxx::Number>("pageHeight"));
@@ -658,6 +739,10 @@ bool Toolkit::ParseOptions(const std::string &json_options)
     if (json.has<jsonxx::Number>("adjustPageHeight")) SetAdjustPageHeight(json.get<jsonxx::Number>("adjustPageHeight"));
 
     if (json.has<jsonxx::Number>("noJustification")) SetNoJustification(json.get<jsonxx::Number>("noJustification"));
+
+    if (json.has<jsonxx::Number>("evenNoteSpacing")) {
+        SetEvenNoteSpacing(json.get<jsonxx::Number>("evenNoteSpacing"));
+    }
 
     if (json.has<jsonxx::Number>("humType")) {
         SetHumType(json.get<jsonxx::Number>("humType"));
@@ -806,7 +891,7 @@ void Toolkit::RedoPagePitchPosLayout()
     page->LayOutPitchPos();
 }
 
-std::string Toolkit::RenderToSvg(int pageNo, bool xml_declaration)
+bool Toolkit::RenderToDeviceContext(int pageNo, DeviceContext *deviceContext)
 {
     // Page number is one-based - correct it to 0-based first
     pageNo--;
@@ -821,18 +906,33 @@ std::string Toolkit::RenderToSvg(int pageNo, bool xml_declaration)
     if (m_noLayout) width = m_doc.GetAdjustedDrawingPageWidth();
     if (m_adjustPageHeight || m_noLayout) height = m_doc.GetAdjustedDrawingPageHeight();
 
+    // set dimensions
+    deviceContext->SetWidth(width);
+    deviceContext->SetHeight(height);
+    double userScale = m_view.GetPPUFactor() * m_scale / 100;
+    deviceContext->SetUserScale(userScale, userScale);
+
+    // render the page
+    m_view.DrawCurrentPage(deviceContext, false);
+
+    return true;
+}
+
+std::string Toolkit::RenderToSvg(int pageNo, bool xml_declaration)
+{
     // Create the SVG object, h & w come from the system
     // We will need to set the size of the page after having drawn it depending on the options
-    SvgDeviceContext svg(width, height);
+    SvgDeviceContext svg;
 
-    // set scale and border from user options
-    svg.SetUserScale(m_view.GetPPUFactor() * (double)m_scale / 100, m_view.GetPPUFactor() * (double)m_scale / 100);
+    if (m_mmOutput) {
+        svg.SetMMOutput(true);
+    }
 
     // debug BB?
     svg.SetDrawBoundingBoxes(m_showBoundingBoxes);
 
     // render the page
-    m_view.DrawCurrentPage(&svg, false);
+    RenderToDeviceContext(pageNo, &svg);
 
     std::string out_str = svg.GetStringSVG(xml_declaration);
     return out_str;
@@ -895,34 +995,52 @@ std::string Toolkit::RenderToMidi()
     return outputstr;
 }
 
+std::string Toolkit::RenderToTimemap()
+{
+    std::string output;
+    m_doc.ExportTimemap(output);
+    return output;
+}
+
 std::string Toolkit::GetElementsAtTime(int millisec)
 {
 #if defined(USE_EMSCRIPTEN) || defined(PYTHON_BINDING)
     jsonxx::Object o;
     jsonxx::Array a;
 
-    double time = (double)(millisec * 120 / 1000);
-    NoteOnsetOffsetComparison matchTime(time);
-    ArrayOfObjects notes;
-    // Here we would need to check that the midi export is done
-    if (m_doc.GetMidiExportDone()) {
-        m_doc.FindAllChildByAttComparison(&notes, &matchTime);
-
-        // Get the pageNo from the first note (if any)
-        int pageNo = -1;
-        if (notes.size() > 0) {
-            Page *page = dynamic_cast<Page *>(notes.at(0)->GetFirstParent(PAGE));
-            if (page) pageNo = page->GetIdx() + 1;
-        }
-
-        // Fill the JSON object
-        ArrayOfObjects::iterator iter;
-        for (iter = notes.begin(); iter != notes.end(); iter++) {
-            a << (*iter)->GetUuid();
-        }
-        o << "notes" << a;
-        o << "page" << pageNo;
+    // Here we need to check that the midi timemap is done
+    if (!m_doc.HasMidiTimemap()) {
+        return o.json();
     }
+
+    MeasureOnsetOffsetComparison matchMeasureTime(millisec);
+    Measure *measure = dynamic_cast<Measure *>(m_doc.FindChildByAttComparison(&matchMeasureTime));
+
+    if (!measure) {
+        return o.json();
+    }
+
+    int repeat = measure->EnclosesTime(millisec);
+    int measureTimeOffset = measure->GetRealTimeOffsetMilliseconds(repeat);
+
+    // Get the pageNo from the first note (if any)
+    int pageNo = -1;
+    Page *page = dynamic_cast<Page *>(measure->GetFirstParent(PAGE));
+    if (page) pageNo = page->GetIdx() + 1;
+
+    NoteOnsetOffsetComparison matchNoteTime(millisec - measureTimeOffset);
+    ArrayOfObjects notes;
+
+    measure->FindAllChildByAttComparison(&notes, &matchNoteTime);
+
+    // Fill the JSON object
+    ArrayOfObjects::iterator iter;
+    for (iter = notes.begin(); iter != notes.end(); iter++) {
+        a << (*iter)->GetUuid();
+    }
+    o << "notes" << a;
+    o << "page" << pageNo;
+
     return o.json();
 #else
     // The non-js version of the app should not use this function.
@@ -937,6 +1055,20 @@ bool Toolkit::RenderToMidiFile(const std::string &filename)
     m_doc.ExportMIDI(&outputfile);
     outputfile.sortTracks();
     outputfile.write(filename);
+
+    return true;
+}
+
+bool Toolkit::RenderToTimemapFile(const std::string &filename)
+{
+    std::string outputString;
+    m_doc.ExportTimemap(outputString);
+
+    std::ofstream output(filename.c_str());
+    if (!output.is_open()) {
+        return false;
+    }
+    output << outputString;
 
     return true;
 }
@@ -959,14 +1091,25 @@ int Toolkit::GetPageWithElement(const std::string &xmlId)
     return page->GetIdx() + 1;
 }
 
-double Toolkit::GetTimeForElement(const std::string &xmlId)
+int Toolkit::GetTimeForElement(const std::string &xmlId)
 {
     Object *element = m_doc.FindChildByUuid(xmlId);
-    double timeofElement = 0.0;
+    int timeofElement = 0;
     if (element->Is(NOTE)) {
+        if (!m_doc.HasMidiTimemap()) {
+            // generate MIDI timemap before progressing
+            m_doc.CalculateMidiTimemap();
+        }
+        if (!m_doc.HasMidiTimemap()) {
+            LogWarning("Calculation of MIDI timemap failed, time value is invalid.");
+        }
         Note *note = dynamic_cast<Note *>(element);
         assert(note);
-        timeofElement = note->m_playingOnset * 1000 / 120;
+        Measure *measure = dynamic_cast<Measure *>(note->GetFirstParent(MEASURE));
+        assert(measure);
+        // For now ignore repeats and access always the first
+        timeofElement = measure->GetRealTimeOffsetMilliseconds(1);
+        timeofElement += note->GetRealTimeOnsetMilliseconds();
     }
     return timeofElement;
 }
@@ -1124,15 +1267,18 @@ bool Toolkit::Set(std::string elementId, std::string attrType, std::string attrV
 {
     if (!m_doc.GetDrawingPage()) return false;
     Object *element = m_doc.GetDrawingPage()->FindChildByUuid(elementId);
+    if (Att::SetAnalytical(element, attrType, attrValue)) return true;
     if (Att::SetCmn(element, attrType, attrValue)) return true;
     if (Att::SetCmnornaments(element, attrType, attrValue)) return true;
     if (Att::SetCritapp(element, attrType, attrValue)) return true;
+    if (Att::SetGestural(element, attrType, attrValue)) return true;
     if (Att::SetExternalsymbols(element, attrType, attrValue)) return true;
     if (Att::SetMei(element, attrType, attrValue)) return true;
     if (Att::SetMensural(element, attrType, attrValue)) return true;
     if (Att::SetMidi(element, attrType, attrValue)) return true;
     if (Att::SetPagebased(element, attrType, attrValue)) return true;
     if (Att::SetShared(element, attrType, attrValue)) return true;
+    if (Att::SetVisual(element, attrType, attrValue)) return true;
     return false;
 }
 

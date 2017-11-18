@@ -26,11 +26,11 @@ namespace vrv {
 // TimePointInterface
 //----------------------------------------------------------------------------
 
-TimePointInterface::TimePointInterface() : Interface(), AttStaffident(), AttStartid(), AttTimestampMusical()
+TimePointInterface::TimePointInterface() : Interface(), AttStaffIdent(), AttStartId(), AttTimestampLogical()
 {
     RegisterInterfaceAttClass(ATT_STAFFIDENT);
     RegisterInterfaceAttClass(ATT_STARTID);
-    RegisterInterfaceAttClass(ATT_TIMESTAMPMUSICAL);
+    RegisterInterfaceAttClass(ATT_TIMESTAMPLOGICAL);
 
     Reset();
 }
@@ -41,9 +41,9 @@ TimePointInterface::~TimePointInterface()
 
 void TimePointInterface::Reset()
 {
-    ResetStaffident();
-    ResetStartid();
-    ResetTimestampMusical();
+    ResetStaffIdent();
+    ResetStartId();
+    ResetTimestampLogical();
 
     m_start = NULL;
     m_startUuid = "";
@@ -77,17 +77,8 @@ void TimePointInterface::AddStaff(int n)
 void TimePointInterface::SetUuidStr()
 {
     if (this->HasStartid()) {
-        m_startUuid = this->ExtractUuidFragment(this->GetStartid());
+        m_startUuid = ExtractUuidFragment(this->GetStartid());
     }
-}
-
-std::string TimePointInterface::ExtractUuidFragment(std::string refUuid)
-{
-    size_t pos = refUuid.find_last_of("#");
-    if ((pos != std::string::npos) && (pos < refUuid.length() - 1)) {
-        refUuid = refUuid.substr(pos + 1);
-    }
-    return refUuid;
 }
 
 Measure *TimePointInterface::GetStartMeasure()
@@ -130,7 +121,7 @@ std::vector<Staff *> TimePointInterface::GetTstampStaves(Measure *measure)
         staffList.push_back(1);
     }
     for (iter = staffList.begin(); iter != staffList.end(); iter++) {
-        AttCommonNComparison comparison(STAFF, *iter);
+        AttNIntegerComparison comparison(STAFF, *iter);
         Staff *staff = dynamic_cast<Staff *>(measure->FindChildByAttComparison(&comparison, 1));
         if (!staff) {
             // LogDebug("Staff with @n '%d' not found in measure '%s'", *iter, measure->GetUuid().c_str());
@@ -146,10 +137,10 @@ std::vector<Staff *> TimePointInterface::GetTstampStaves(Measure *measure)
 // TimeSpanningInterface
 //----------------------------------------------------------------------------
 
-TimeSpanningInterface::TimeSpanningInterface() : TimePointInterface(), AttStartendid(), AttTimestamp2Musical()
+TimeSpanningInterface::TimeSpanningInterface() : TimePointInterface(), AttStartEndId(), AttTimestamp2Logical()
 {
     RegisterInterfaceAttClass(ATT_STARTENDID);
-    RegisterInterfaceAttClass(ATT_TIMESTAMP2MUSICAL);
+    RegisterInterfaceAttClass(ATT_TIMESTAMP2LOGICAL);
 
     Reset();
 }
@@ -161,8 +152,8 @@ TimeSpanningInterface::~TimeSpanningInterface()
 void TimeSpanningInterface::Reset()
 {
     TimePointInterface::Reset();
-    ResetStartendid();
-    ResetTimestamp2Musical();
+    ResetStartEndId();
+    ResetTimestamp2Logical();
 
     m_end = NULL;
     m_endUuid = "";
@@ -178,7 +169,7 @@ void TimeSpanningInterface::SetUuidStr()
 {
     TimePointInterface::SetUuidStr();
     if (this->HasEndid()) {
-        m_endUuid = this->ExtractUuidFragment(this->GetEndid());
+        m_endUuid = ExtractUuidFragment(this->GetEndid());
     }
 }
 

@@ -17,8 +17,11 @@
 #include "editorial.h"
 #include "functorparams.h"
 #include "keysig.h"
+#include "label.h"
 #include "mensur.h"
 #include "metersig.h"
+#include "staffdef.h"
+#include "staffgrp.h"
 #include "system.h"
 #include "vrv.h"
 
@@ -28,10 +31,9 @@ namespace vrv {
 // ScoreDefElement
 //----------------------------------------------------------------------------
 
-ScoreDefElement::ScoreDefElement(std::string classid) : Object(classid), ScoreDefInterface(), AttCommon(), AttTyped()
+ScoreDefElement::ScoreDefElement(std::string classid) : Object(classid), ScoreDefInterface(), AttTyped()
 {
     RegisterInterface(ScoreDefInterface::GetAttClasses(), ScoreDefInterface::IsInterface());
-    RegisterAttClass(ATT_COMMON);
     RegisterAttClass(ATT_TYPED);
 
     Reset();
@@ -45,7 +47,6 @@ void ScoreDefElement::Reset()
 {
     Object::Reset();
     ScoreDefInterface::Reset();
-    ResetCommon();
     ResetTyped();
 }
 
@@ -91,7 +92,8 @@ bool ScoreDefElement::HasKeySigAttrInfo() const
 bool ScoreDefElement::HasMensurAttrInfo() const
 {
     // What is the minimum we need? Checking only some for now. Need clarification
-    return (this->HasProlatio() || this->HasTempus() || this->HasProportNum() || this->HasProportNumbase());
+    return (this->HasProlatio() || this->HasTempus() || this->HasProportNum() || this->HasProportNumbase()
+        || this->HasMensurSign());
 }
 
 bool ScoreDefElement::HasMeterSigAttrInfo() const
@@ -299,7 +301,8 @@ void ScoreDef::ReplaceDrawingValues(StaffDef *newStaffDef)
         }
         // copy other attributes if present
         if (newStaffDef->HasLabel()) staffDef->SetLabel(newStaffDef->GetLabel());
-        if (newStaffDef->HasLabelAbbr()) staffDef->SetLabelAbbr(newStaffDef->GetLabelAbbr());
+        // FIXME MEI 4.0.0
+        // if (newStaffDef->HasLabelAbbr()) staffDef->SetLabelAbbr(newStaffDef->GetLabelAbbr());
     }
     else {
         LogWarning("StaffDef with xml:id '%s' could not be found", newStaffDef->GetUuid().c_str());
@@ -324,8 +327,8 @@ void ScoreDef::FilterList(ListOfObjects *childList)
 StaffDef *ScoreDef::GetStaffDef(int n)
 {
     this->ResetList(this);
-    ListOfObjects *childList = this->GetList(this);
-    ListOfObjects::iterator iter;
+    const ListOfObjects *childList = this->GetList(this);
+    ListOfObjects::const_iterator iter;
 
     StaffDef *staffDef = NULL;
     for (iter = childList->begin(); iter != childList->end(); ++iter) {
@@ -343,8 +346,8 @@ StaffDef *ScoreDef::GetStaffDef(int n)
 std::vector<int> ScoreDef::GetStaffNs()
 {
     this->ResetList(this);
-    ListOfObjects *childList = this->GetList(this);
-    ListOfObjects::iterator iter;
+    const ListOfObjects *childList = this->GetList(this);
+    ListOfObjects::const_iterator iter;
 
     std::vector<int> ns;
     StaffDef *staffDef = NULL;
@@ -375,125 +378,6 @@ void ScoreDef::SetRedrawFlags(bool clef, bool keySig, bool mensur, bool meterSig
 void ScoreDef::SetDrawingWidth(int drawingWidth)
 {
     m_drawingWidth = drawingWidth;
-}
-
-//----------------------------------------------------------------------------
-// StaffGrp
-//----------------------------------------------------------------------------
-
-StaffGrp::StaffGrp()
-    : Object("staffgrp-")
-    , ObjectListInterface()
-    , AttCommon()
-    , AttCommonPart()
-    , AttLabelsAddl()
-    , AttStaffgroupingsym()
-    , AttStaffGrpVis()
-    , AttTyped()
-{
-    RegisterAttClass(ATT_COMMON);
-    RegisterAttClass(ATT_COMMONPART);
-    RegisterAttClass(ATT_LABELSADDL);
-    RegisterAttClass(ATT_STAFFGROUPINGSYM);
-    RegisterAttClass(ATT_STAFFGRPVIS);
-    RegisterAttClass(ATT_TYPED);
-
-    Reset();
-}
-
-StaffGrp::~StaffGrp()
-{
-}
-
-void StaffGrp::Reset()
-{
-    Object::Reset();
-    ResetCommon();
-    ResetCommonPart();
-    ResetLabelsAddl();
-    ResetStaffgroupingsym();
-    ResetStaffGrpVis();
-    ResetTyped();
-}
-
-void StaffGrp::AddChild(Object *child)
-{
-    if (child->Is(STAFFDEF)) {
-        assert(dynamic_cast<StaffDef *>(child));
-    }
-    else if (child->Is(STAFFGRP)) {
-        assert(dynamic_cast<StaffGrp *>(child));
-    }
-    else if (child->IsEditorialElement()) {
-        assert(dynamic_cast<EditorialElement *>(child));
-    }
-    else {
-        LogError("Adding '%s' to a '%s'", child->GetClassName().c_str(), this->GetClassName().c_str());
-        assert(false);
-    }
-
-    child->SetParent(this);
-    m_children.push_back(child);
-    Modify();
-}
-
-void StaffGrp::FilterList(ListOfObjects *childList)
-{
-    // We want to keep only staffDef
-    ListOfObjects::iterator iter = childList->begin();
-
-    while (iter != childList->end()) {
-        if (!(*iter)->Is(STAFFDEF)) {
-            iter = childList->erase(iter);
-        }
-        else {
-            iter++;
-        }
-    }
-}
-
-//----------------------------------------------------------------------------
-// StaffDef
-//----------------------------------------------------------------------------
-
-StaffDef::StaffDef()
-    : ScoreDefElement("staffdef-")
-    , AttCommonPart()
-    , AttDistances()
-    , AttLabelsAddl()
-    , AttNotationtype()
-    , AttScalable()
-    , AttStaffDefVis()
-    , AttTransposition()
-{
-    RegisterAttClass(ATT_COMMON);
-    RegisterAttClass(ATT_COMMONPART);
-    RegisterAttClass(ATT_DISTANCES);
-    RegisterAttClass(ATT_LABELSADDL);
-    RegisterAttClass(ATT_NOTATIONTYPE);
-    RegisterAttClass(ATT_SCALABLE);
-    RegisterAttClass(ATT_STAFFDEFVIS);
-    RegisterAttClass(ATT_TRANSPOSITION);
-
-    Reset();
-}
-
-StaffDef::~StaffDef()
-{
-}
-
-void StaffDef::Reset()
-{
-    ScoreDefElement::Reset();
-    StaffDefDrawingInterface::Reset();
-    ResetCommon();
-    ResetCommonPart();
-    ResetDistances();
-    ResetLabelsAddl();
-    ResetNotationtype();
-    ResetScalable();
-    ResetStaffDefVis();
-    ResetTransposition();
 }
 
 //----------------------------------------------------------------------------
@@ -545,50 +429,6 @@ int ScoreDef::CastOffEncoding(FunctorParams *functorParams)
     return FUNCTOR_SIBLINGS;
 }
 
-//----------------------------------------------------------------------------
-// StaffDef functor methods
-//----------------------------------------------------------------------------
 
-int StaffDef::ReplaceDrawingValuesInStaffDef(FunctorParams *functorParams)
-{
-    ReplaceDrawingValuesInStaffDefParams *params = dynamic_cast<ReplaceDrawingValuesInStaffDefParams *>(functorParams);
-    assert(params);
-
-    if (params->m_clef) {
-        this->SetCurrentClef(params->m_clef);
-    }
-    if (params->m_keySig) {
-        this->SetCurrentKeySig(params->m_keySig);
-    }
-    if (params->m_mensur) {
-        this->SetCurrentMensur(params->m_mensur);
-    }
-    if (params->m_meterSig) {
-        this->SetCurrentMeterSig(params->m_meterSig);
-    }
-
-    return FUNCTOR_CONTINUE;
-}
-
-int StaffDef::SetStaffDefRedrawFlags(FunctorParams *functorParams)
-{
-    SetStaffDefRedrawFlagsParams *params = dynamic_cast<SetStaffDefRedrawFlagsParams *>(functorParams);
-    assert(params);
-
-    if (params->m_clef || params->m_applyToAll) {
-        this->SetDrawClef(params->m_clef);
-    }
-    if (params->m_keySig || params->m_applyToAll) {
-        this->SetDrawKeySig(params->m_keySig);
-    }
-    if (params->m_mensur || params->m_applyToAll) {
-        this->SetDrawMensur(params->m_mensur);
-    }
-    if (params->m_meterSig || params->m_applyToAll) {
-        this->SetDrawMeterSig(params->m_meterSig);
-    }
-
-    return FUNCTOR_CONTINUE;
-}
 
 } // namespace vrv

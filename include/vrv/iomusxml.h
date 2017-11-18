@@ -26,6 +26,8 @@ namespace vrv {
 class ControlElement;
 class Dir;
 class Dynam;
+class F;
+class Fb;
 class Hairpin;
 class Harm;
 class Layer;
@@ -118,7 +120,7 @@ private:
      */
     ///@{
     bool ReadMusicXmlPart(pugi::xml_node node, Section *section, int nbStaves, int staffOffset);
-    bool ReadMusicXmlMeasure(pugi::xml_node node, Measure *measure, int nbStaves, int staffOffset);
+    bool ReadMusicXmlMeasure(pugi::xml_node node, Section *section, Measure *measure, int nbStaves, int staffOffset);
     ///@}
 
     /*
@@ -131,14 +133,15 @@ private:
      * @name Methods for reading the content of a MusicXml measure.
      */
     ///@{
-    void ReadMusicXmlAttributes(pugi::xml_node, Measure *measure, int measureNum);
-    void ReadMusicXmlBackup(pugi::xml_node, Measure *measure, int measureNum);
-    void ReadMusicXmlBarLine(pugi::xml_node, Measure *measure, int measureNum);
-    void ReadMusicXmlDirection(pugi::xml_node, Measure *measure, int measureNum);
-    void ReadMusicXmlForward(pugi::xml_node, Measure *measure, int measureNum);
-    void ReadMusicXmlHarmony(pugi::xml_node, Measure *measure, int measureNum);
-    void ReadMusicXmlNote(pugi::xml_node, Measure *measure, int measureNum);
-    void ReadMusicXmlPrint(pugi::xml_node, Measure *measure, int measureNum);
+    void ReadMusicXmlAttributes(pugi::xml_node, Section *section, Measure *measure, std::string measureNum);
+    void ReadMusicXmlBackup(pugi::xml_node, Measure *measure, std::string measureNum);
+    void ReadMusicXmlBarLine(pugi::xml_node, Measure *measure, std::string measureNum);
+    void ReadMusicXmlDirection(pugi::xml_node, Measure *measure, std::string measureNum);
+    void ReadMusicXmlFigures(pugi::xml_node node, Measure *measure, std::string measureNum);
+    void ReadMusicXmlForward(pugi::xml_node, Measure *measure, std::string measureNum);
+    void ReadMusicXmlHarmony(pugi::xml_node, Measure *measure, std::string measureNum);
+    void ReadMusicXmlNote(pugi::xml_node, Measure *measure, std::string measureNum);
+    void ReadMusicXmlPrint(pugi::xml_node, Section *section);
     ///@}
 
     /*
@@ -222,7 +225,7 @@ private:
      */
     ///@{
     ///@}
-    void FillSpace(vrv::Layer *layer, int dur);
+    void FillSpace(Layer *layer, int dur);
 
     /*
      * @name Helper method for generating additional IDs
@@ -235,8 +238,8 @@ private:
      * @name Methods for converting MusicXML string values to MEI attributes.
      */
     ///@{
-    data_ACCIDENTAL_EXPLICIT ConvertAccidentalToAccid(std::string value);
-    data_ACCIDENTAL_IMPLICIT ConvertAlterToAccid(float value);
+    data_ACCIDENTAL_WRITTEN ConvertAccidentalToAccid(std::string value);
+    data_ACCIDENTAL_GESTURAL ConvertAlterToAccid(float value);
     data_BARRENDITION ConvertStyleToRend(std::string value, bool repeat);
     data_BOOLEAN ConvertWordToBool(std::string value);
     data_DURATION ConvertTypeToDur(std::string value);
@@ -245,6 +248,8 @@ private:
     fermataVis_SHAPE ConvertFermataShape(std::string);
     pedalLog_DIR ConvertPedalTypeToDir(std::string value);
     tupletVis_NUMFORMAT ConvertTupletNumberValue(std::string value);
+    std::string ConvertAlterToSymbol(std::string value);
+    std::string ConvertKindToSymbol(std::string value);
     ///@}
 
 private:
@@ -258,8 +263,9 @@ private:
     int m_ppq;
     /* meaure time */
     int m_durTotal = 0;
-    /* meter count */
+    /* meter signature */
     int m_meterCount = 0;
+    int m_meterUnit = 0;
     /* LastElementID **/
     std::string m_ID;
     /* The stack for piling open LayerElements (beams, tuplets, chords, etc.)  */
@@ -281,9 +287,9 @@ private:
      * The stack of floating elements (tie, slur, etc.) to be added at the
      * end of each measure
      */
-    std::vector<std::pair<int, ControlElement *> > m_controlElements;
+    std::vector<std::pair<std::string, ControlElement *> > m_controlElements;
 };
 
-} // namespace vrv {
+} // namespace vrv
 
 #endif // __VRV_IOMUSXML_H__

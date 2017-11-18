@@ -27,6 +27,7 @@ class Add;
 class AnchoredText;
 class Annot;
 class App;
+class Arpeg;
 class Artic;
 class BarLine;
 class Beam;
@@ -56,9 +57,12 @@ class FloatingElement;
 class FTrem;
 class Hairpin;
 class Harm;
+class Label;
+class LabelAbbr;
 class Layer;
 class LayerElement;
 class Lem;
+class Ligature;
 class Measure;
 class Mensur;
 class MeterSig;
@@ -74,6 +78,7 @@ class Orig;
 class Pb;
 class Pedal;
 class PitchInterface;
+class PlistInterface;
 class PositionInterface;
 class Proport;
 class Rdg;
@@ -116,7 +121,7 @@ class Verse;
  * This class is a file output stream for writing MEI files.
  * It uses the libmei C++ library.
  * Not implemented.
-*/
+ */
 class MeiOutput : public FileOutputStream {
 public:
     /** @name Constructors and destructor */
@@ -179,6 +184,8 @@ private:
     void WriteMeiScoreDef(pugi::xml_node currentNode, ScoreDef *scoreDef);
     void WriteMeiStaffGrp(pugi::xml_node currentNode, StaffGrp *staffGrp);
     void WriteMeiStaffDef(pugi::xml_node currentNode, StaffDef *staffDef);
+    void WriteMeiLabel(pugi::xml_node currentNode, Label *label);
+    void WriteMeiLabelAbbr(pugi::xml_node currentNode, LabelAbbr *labelAbbr);
     void WriteMeiMeasure(pugi::xml_node currentNode, Measure *measure);
     void WriteMeiFb(pugi::xml_node currentNode, Fb *fb);
     void WriteMeiStaff(pugi::xml_node currentNode, Staff *staff);
@@ -202,6 +209,7 @@ private:
     void WriteMeiDot(pugi::xml_node currentNode, Dot *dot);
     void WriteMeiFTrem(pugi::xml_node currentNode, FTrem *fTrem);
     void WriteMeiKeySig(pugi::xml_node currentNode, KeySig *keySig);
+    void WriteMeiLigature(pugi::xml_node currentNode, Ligature *ligature);
     void WriteMeiMensur(pugi::xml_node currentNode, Mensur *mensur);
     void WriteMeiMeterSig(pugi::xml_node currentNode, MeterSig *meterSig);
     void WriteMeiMRest(pugi::xml_node currentNode, MRest *mRest);
@@ -221,6 +229,7 @@ private:
      */
     ///@{
     void WriteMeiAnchoredText(pugi::xml_node currentNode, AnchoredText *anchoredText);
+    void WriteMeiArpeg(pugi::xml_node currentNode, Arpeg *arpeg);
     void WriteMeiBreath(pugi::xml_node currentNode, Breath *breath);
     void WriteMeiDir(pugi::xml_node currentNode, Dir *dir);
     void WriteMeiDynam(pugi::xml_node currentNode, Dynam *dynam);
@@ -296,6 +305,7 @@ private:
     //
     void WriteDurationInterface(pugi::xml_node currentNode, DurationInterface *interface);
     void WritePitchInterface(pugi::xml_node currentNode, PitchInterface *interface);
+    void WritePlistInterface(pugi::xml_node currentNode, PlistInterface *interface);
     void WritePositionInterface(pugi::xml_node currentNode, PositionInterface *interface);
     void WriteScoreDefInterface(pugi::xml_node currentNode, ScoreDefInterface *interface);
     void WriteTextDirInterface(pugi::xml_node currentNode, TextDirInterface *interface);
@@ -338,7 +348,7 @@ private:
  * This class is a file input stream for reading MEI files.
  * It uses the libmei C++ library.
  * Under development.
-*/
+ */
 class MeiInput : public FileInputStream {
 public:
     // constructors and destructors
@@ -403,6 +413,9 @@ private:
     bool ReadMeiStaffGrp(Object *parent, pugi::xml_node staffGrp);
     bool ReadMeiStaffGrpChildren(Object *parent, pugi::xml_node parentNode);
     bool ReadMeiStaffDef(Object *parent, pugi::xml_node staffDef);
+    bool ReadMeiStaffDefChildren(Object *parent, pugi::xml_node parentNode);
+    bool ReadMeiLabel(Object *parent, pugi::xml_node label);
+    bool ReadMeiLabelAbbr(Object *parent, pugi::xml_node labelAbbr);
     bool ReadMeiMeasure(Object *parent, pugi::xml_node measure);
     bool ReadMeiMeasureChildren(Object *parent, pugi::xml_node parentNode);
     bool ReadMeiFb(Object *parent, pugi::xml_node fb);
@@ -452,6 +465,7 @@ private:
      */
     ///@{
     bool ReadMeiAnchoredText(Object *parent, pugi::xml_node anchoredText);
+    bool ReadMeiArpeg(Object *parent, pugi::xml_node arpeg);
     bool ReadMeiBreath(Object *parent, pugi::xml_node breath);
     bool ReadMeiDir(Object *parent, pugi::xml_node dir);
     bool ReadMeiDynam(Object *parent, pugi::xml_node dynam);
@@ -518,6 +532,7 @@ private:
 
     bool ReadDurationInterface(pugi::xml_node element, DurationInterface *interface);
     bool ReadPitchInterface(pugi::xml_node element, PitchInterface *interface);
+    bool ReadPlistInterface(pugi::xml_node element, PlistInterface *interface);
     bool ReadPositionInterface(pugi::xml_node element, PositionInterface *interface);
     bool ReadScoreDefInterface(pugi::xml_node element, ScoreDefInterface *interface);
     bool ReadTextDirInterface(pugi::xml_node element, TextDirInterface *interface);
@@ -555,10 +570,20 @@ private:
     ///@{
     void SetMeiUuid(pugi::xml_node element, Object *object);
     DocType StrToDocType(std::string type);
-    /** Extract the uuid for references to uuids with ..#uuid values */
-    std::string ExtractUuidFragment(std::string refUuid);
     std::wstring LeftTrim(std::wstring str);
     std::wstring RightTrim(std::wstring str);
+    ///@}
+
+    /**
+     * @name Various methods for upgrading older MEI files
+     */
+    ///@{
+    // to MEI 4.0.0
+    void UpgradeStaffDefTo_4_0_0(pugi::xml_node staffDef, StaffDef *vrvStaffDef);
+    void UpgradeStaffGrpTo_4_0_0(pugi::xml_node staffGrp, StaffGrp *vrvStaffGrp);
+    // to MEI 3.0.0 (Page-Based MEI only)
+    void UpgradeMeasureTo_3_0_0(Measure *measure, System *system);
+    void UpgradePageTo_3_0_0(Page *page, Doc *doc);
     ///@}
 
 public:

@@ -28,17 +28,12 @@ namespace vrv {
 //----------------------------------------------------------------------------
 
 Rest::Rest()
-    : LayerElement("rest-")
-    , DurationInterface()
-    , PositionInterface()
-    , AttColor()
-    , AttRelativesize()
-    , AttRestVisMensural()
+    : LayerElement("rest-"), DurationInterface(), PositionInterface(), AttColor(), AttCue(), AttRestVisMensural()
 {
     RegisterInterface(DurationInterface::GetAttClasses(), DurationInterface::IsInterface());
     RegisterInterface(PositionInterface::GetAttClasses(), PositionInterface::IsInterface());
     RegisterAttClass(ATT_COLOR);
-    RegisterAttClass(ATT_RELATIVESIZE);
+    RegisterAttClass(ATT_CUE);
     RegisterAttClass(ATT_RESTVISMENSURAL);
     Reset();
 }
@@ -53,7 +48,7 @@ void Rest::Reset()
     DurationInterface::Reset();
     PositionInterface::Reset();
     ResetColor();
-    ResetRelativesize();
+    ResetCue();
     ResetRestVisMensural();
 }
 
@@ -130,7 +125,7 @@ int Rest::PrepareLayerElementParts(FunctorParams *functorParams)
             currentDots = new Dots();
             this->AddChild(currentDots);
         }
-        currentDots->AttAugmentdots::operator=(*this);
+        currentDots->AttAugmentDots::operator=(*this);
     }
     // This will happen only if the duration has changed
     else if (currentDots) {
@@ -138,6 +133,11 @@ int Rest::PrepareLayerElementParts(FunctorParams *functorParams)
             currentDots = NULL;
         }
     }
+
+    /************ Prepare the drawing cue size ************/
+
+    Functor prepareDrawingCueSize(&Object::PrepareDrawingCueSize);
+    this->Process(&prepareDrawingCueSize, NULL);
 
     return FUNCTOR_CONTINUE;
 };
@@ -162,7 +162,7 @@ int Rest::CalcDots(FunctorParams *functorParams)
 
     if (this->m_crossStaff) staff = this->m_crossStaff;
 
-    bool drawingCueSize = this->IsCueSize();
+    bool drawingCueSize = this->GetDrawingCueSize();
     int staffSize = staff->m_drawingStaffSize;
 
     Dots *dots = NULL;
@@ -180,7 +180,7 @@ int Rest::CalcDots(FunctorParams *functorParams)
     }
 
     switch (this->GetActualDur()) {
-        case DUR_1: loc += 2; break;
+        case DUR_1: loc -= 2; break;
         case DUR_2: loc += 0; break;
         case DUR_4: loc += 2; break;
         case DUR_8: loc += 2; break;
@@ -195,10 +195,10 @@ int Rest::CalcDots(FunctorParams *functorParams)
     dotLocs->push_back(loc);
 
     // HARDCODED
-    int xRel = params->m_doc->GetDrawingUnit(staffSize) * 1.5;
+    int xRel = params->m_doc->GetDrawingUnit(staffSize) * 2.5;
     if (drawingCueSize) xRel = params->m_doc->GetCueSize(xRel);
     if (this->GetDur() > DUR_2) {
-        xRel = params->m_doc->GetGlyphWidth(this->GetRestGlyph(), staff->m_drawingStaffSize, drawingCueSize) / 2;
+        xRel = params->m_doc->GetGlyphWidth(this->GetRestGlyph(), staff->m_drawingStaffSize, drawingCueSize);
     }
     dots->SetDrawingXRel(std::max(dots->GetDrawingXRel(), xRel));
 

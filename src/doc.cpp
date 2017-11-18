@@ -20,6 +20,7 @@
 #include "functorparams.h"
 #include "glyph.h"
 #include "keysig.h"
+#include "label.h"
 #include "layer.h"
 #include "measure.h"
 #include "mensur.h"
@@ -33,6 +34,8 @@
 #include "slur.h"
 #include "smufl.h"
 #include "staff.h"
+#include "staffdef.h"
+#include "staffgrp.h"
 #include "syl.h"
 #include "system.h"
 #include "verse.h"
@@ -87,7 +90,7 @@ void Doc::Reset()
     m_drawingEvenSpacing = false;
     m_currentScoreDefDone = false;
     m_drawingPreparationDone = false;
-    m_midiExportDone = false;
+    m_hasMidiTimemap = false;
 
     m_scoreDef.Reset();
     if (m_scoreBuffer) {
@@ -174,13 +177,69 @@ bool Doc::GenerateDocumentScoreDef()
     return true;
 }
 
-void Doc::ExportMIDI(MidiFile *midiFile)
+bool Doc::HasMidiTimemap()
 {
-    CalcMaxMeasureDurationParams calcMaxMeasureDurationParams;
+    return m_hasMidiTimemap;
+}
+
+void Doc::CalculateMidiTimemap()
+{
+    m_hasMidiTimemap = false;
+
+    // This happens if the document was never cast off (no-layout option in the toolkit)
+    if (!m_drawingPage && GetChildCount() == 1) {
+        Page *page = this->SetDrawingPage(0);
+        if (!page) {
+            return;
+        }
+        this->CollectScoreDefs();
+        page->LayOutHorizontally();
+    }
+
+    int tempo = 120;
+
+    // Set tempo
+    if (m_scoreDef.HasMidiBpm()) {
+        tempo = m_scoreDef.GetMidiBpm();
+    }
 
     // We first calculate the maximum duration of each measure
+    CalcMaxMeasureDurationParams calcMaxMeasureDurationParams;
+    calcMaxMeasureDurationParams.m_currentTempo = tempo;
     Functor calcMaxMeasureDuration(&Object::CalcMaxMeasureDuration);
     this->Process(&calcMaxMeasureDuration, &calcMaxMeasureDurationParams);
+
+    // Then calculate the onset and offset times (w.r.t. the measure) for every note
+    CalcOnsetOffsetParams calcOnsetOffsetParams;
+    Functor calcOnsetOffset(&Object::CalcOnsetOffset);
+    Functor calcOnsetOffsetEnd(&Object::CalcOnsetOffsetEnd);
+    this->Process(&calcOnsetOffset, &calcOnsetOffsetParams, &calcOnsetOffsetEnd);
+
+    // Adjust the duration of tied notes
+    Functor resolveMIDITies(&Object::ResolveMIDITies);
+    this->Process(&resolveMIDITies, NULL, NULL, NULL, UNLIMITED_DEPTH, BACKWARD);
+
+    m_hasMidiTimemap = true;
+}
+
+void Doc::ExportMIDI(MidiFile *midiFile)
+{
+
+    if (!Doc::HasMidiTimemap()) {
+        // generate MIDI timemap before progressing
+        CalculateMidiTimemap();
+    }
+    if (!Doc::HasMidiTimemap()) {
+        LogWarning("Calculation of MIDI timemap failed, not exporting MidiFile.");
+    }
+
+    int tempo = 120;
+
+    // Set tempo
+    if (m_scoreDef.HasMidiBpm()) {
+        tempo = m_scoreDef.GetMidiBpm();
+    }
+    midiFile->addTempo(0, 0, tempo);
 
     // We need to populate processing lists for processing the document by Layer (by Verse will not be used)
     PrepareProcessingListsParams prepareProcessingListsParams;
@@ -193,16 +252,11 @@ void Doc::ExportMIDI(MidiFile *midiFile)
     this->Process(&prepareProcessingLists, &prepareProcessingListsParams);
 
     // The tree is used to process each staff/layer/verse separatly
-    // For this, we use a array of AttCommmonNComparison that looks for each object if it is of the type
+    // For this, we use a array of AttNIntegerComparison that looks for each object if it is of the type
     // and with @n specified
 
     IntTree_t::iterator staves;
     IntTree_t::iterator layers;
-
-    // Set tempo
-    if (m_scoreDef.HasMidiBpm()) {
-        midiFile->addTempo(0, 0, m_scoreDef.GetMidiBpm());
-    }
 
     // Process notes and chords, rests, spaces layer by layer
     // track 0 (included by default) is reserved for meta messages common to all tracks
@@ -217,30 +271,127 @@ void Doc::ExportMIDI(MidiFile *midiFile)
             if (staffDef->HasTransSemi()) transSemi = staffDef->GetTransSemi();
             midiTrack = staffDef->GetN();
             midiFile->addTrack();
-            if (staffDef->HasLabel()) midiFile->addTrackName(midiTrack, 0, staffDef->GetLabel());
+            Label *label = dynamic_cast<Label *>(staffDef->FindChildByType(LABEL, 1));
+            if (!label) {
+                StaffGrp *staffGrp = dynamic_cast<StaffGrp *>(staffDef->GetFirstParent(STAFFGRP));
+                assert(staffGrp);
+                label = dynamic_cast<Label *>(staffGrp->FindChildByType(LABEL, 1));
+            }
+            if (label) {
+                std::string trackName = UTF16to8(label->GetText(label)).c_str();
+                if (!trackName.empty()) midiFile->addTrackName(midiTrack, 0, trackName);
+            }
         }
 
         for (layers = staves->second.child.begin(); layers != staves->second.child.end(); ++layers) {
             filters.clear();
             // Create ad comparison object for each type / @n
-            AttCommonNComparison matchStaff(STAFF, staves->first);
-            AttCommonNComparison matchLayer(LAYER, layers->first);
+            AttNIntegerComparison matchStaff(STAFF, staves->first);
+            AttNIntegerComparison matchLayer(LAYER, layers->first);
             filters.push_back(&matchStaff);
             filters.push_back(&matchLayer);
 
             GenerateMIDIParams generateMIDIParams(midiFile);
-            generateMIDIParams.m_maxValues = calcMaxMeasureDurationParams.m_maxValues;
             generateMIDIParams.m_midiTrack = midiTrack;
             generateMIDIParams.m_transSemi = transSemi;
+            generateMIDIParams.m_currentTempo = tempo;
             Functor generateMIDI(&Object::GenerateMIDI);
-            Functor generateMIDIEnd(&Object::GenerateMIDIEnd);
 
             // LogDebug("Exporting track %d ----------------", midiTrack);
-            this->Process(&generateMIDI, &generateMIDIParams, &generateMIDIEnd, &filters);
+            this->Process(&generateMIDI, &generateMIDIParams, NULL, &filters);
         }
     }
+}
 
-    m_midiExportDone = true;
+bool Doc::ExportTimemap(string &output)
+{
+    if (!Doc::HasMidiTimemap()) {
+        // generate MIDI timemap before progressing
+        CalculateMidiTimemap();
+    }
+    if (!Doc::HasMidiTimemap()) {
+        LogWarning("Calculation of MIDI timemap failed, not exporting MidiFile.");
+        output = "";
+        return false;
+    }
+    GenerateTimemapParams generateTimemapParams;
+    Functor generateTimemap(&Object::GenerateTimemap);
+    this->Process(&generateTimemap, &generateTimemapParams);
+
+    PrepareJsonTimemap(output, generateTimemapParams.realTimeToScoreTime, generateTimemapParams.realTimeToOnElements,
+        generateTimemapParams.realTimeToOffElements, generateTimemapParams.realTimeToTempo);
+
+    return true;
+}
+
+void Doc::PrepareJsonTimemap(std::string &output, std::map<int, double> &realTimeToScoreTime,
+    std::map<int, vector<string> > &realTimeToOnElements, std::map<int, vector<string> > &realTimeToOffElements,
+    std::map<int, int> &realTimeToTempo)
+{
+
+    int currentTempo = -1000;
+    int newTempo;
+    int mapsize = (int)realTimeToScoreTime.size();
+    output = "";
+    output.reserve(mapsize * 100); // Estimate 100 characters for each entry.
+    output += "[\n";
+    auto lastit = realTimeToScoreTime.end();
+    lastit--;
+    for (auto it = realTimeToScoreTime.begin(); it != realTimeToScoreTime.end(); it++) {
+        output += "\t{\n";
+        output += "\t\t\"tstamp\":\t";
+        output += to_string(it->first);
+        output += ",\n";
+        output += "\t\t\"qstamp\":\t";
+        output += to_string(it->second);
+
+        auto ittempo = realTimeToTempo.find(it->first);
+        if (ittempo != realTimeToTempo.end()) {
+            newTempo = ittempo->second;
+            if (newTempo != currentTempo) {
+                currentTempo = newTempo;
+                output += ",\n\t\t\"tempo\":\t";
+                output += to_string(currentTempo);
+            }
+        }
+
+        auto iton = realTimeToOnElements.find(it->first);
+        if (iton != realTimeToOnElements.end()) {
+            output += ",\n\t\t\"on\":\t[";
+            for (int ion = 0; ion < (int)iton->second.size(); ion++) {
+                output += "\"";
+                output += iton->second[ion];
+                output += "\"";
+                if (ion < (int)iton->second.size() - 1) {
+                    output += ", ";
+                }
+            }
+            output += "]";
+        }
+
+        auto itoff = realTimeToOffElements.find(it->first);
+        if (itoff != realTimeToOffElements.end()) {
+            output += ",\n\t\t\"off\":\t[";
+            for (int ioff = 0; ioff < (int)itoff->second.size(); ioff++) {
+                output += "\"";
+                output += itoff->second[ioff];
+                output += "\"";
+                if (ioff < (int)itoff->second.size() - 1) {
+                    output += ", ";
+                }
+            }
+            output += "]";
+        }
+
+        output += "\n\t}";
+        if (it == lastit) {
+            output += "\n";
+        }
+        else {
+            output += ",\n";
+        }
+    }
+    output += "]\n";
 }
 
 void Doc::PrepareDrawing()
@@ -249,6 +400,8 @@ void Doc::PrepareDrawing()
         Functor resetDrawing(&Object::ResetDrawing);
         this->Process(&resetDrawing, NULL);
     }
+
+    /************ Resolve @starid / @endid ************/
 
     // Try to match all spanning elements (slur, tie, etc) by processing backwards
     PrepareTimeSpanningParams prepareTimeSpanningParams;
@@ -267,12 +420,16 @@ void Doc::PrepareDrawing()
         this->Process(&prepareTimeSpanning, &prepareTimeSpanningParams);
     }
 
+    /************ Resolve @starid (only) ************/
+
     // Try to match all time pointing elements (tempo, fermata, etc) by processing backwards
     PrepareTimePointingParams prepareTimePointingParams;
     Functor prepareTimePointing(&Object::PrepareTimePointing);
     Functor prepareTimePointingEnd(&Object::PrepareTimePointingEnd);
     this->Process(
         &prepareTimePointing, &prepareTimePointingParams, &prepareTimePointingEnd, NULL, UNLIMITED_DEPTH, BACKWARD);
+
+    /************ Resolve @tstamp / tstamp2 ************/
 
     // Now try to match the @tstamp and @tstamp2 attributes.
     PrepareTimestampsParams prepareTimestampsParams;
@@ -287,11 +444,34 @@ void Doc::PrepareDrawing()
             prepareTimestampsParams.m_timeSpanningInterfaces.size());
     }
 
+    /************ Resolve @plist ************/
+
+    // Try to match all pointing elements using @plist
+    PreparePlistParams preparePlistParams;
+    Functor preparePlist(&Object::PreparePlist);
+    this->Process(&preparePlist, &preparePlistParams);
+
+    // If we have some left process again backward.
+    if (!preparePlistParams.m_interfaceUuidPairs.empty()) {
+        preparePlistParams.m_fillList = false;
+        this->Process(&preparePlist, &preparePlistParams, NULL, NULL, UNLIMITED_DEPTH, BACKWARD);
+    }
+
+    // If some are still there, then it is probably an issue in the encoding
+    if (!preparePlistParams.m_interfaceUuidPairs.empty()) {
+        LogWarning(
+            "%d element(s) with a @plist could match the target", preparePlistParams.m_interfaceUuidPairs.size());
+    }
+
+    /************ Resolve cross staff ************/
+
     // Prepare the cross-staff pointers
     PrepareCrossStaffParams prepareCrossStaffParams;
     Functor prepareCrossStaff(&Object::PrepareCrossStaff);
     Functor prepareCrossStaffEnd(&Object::PrepareCrossStaffEnd);
     this->Process(&prepareCrossStaff, &prepareCrossStaffParams, &prepareCrossStaffEnd);
+
+    /************ Prepare processing by staff/layer/verse ************/
 
     // We need to populate processing lists for processing the document by Layer (for matching @tie) and
     // by Verse (for matching syllable connectors)
@@ -306,12 +486,14 @@ void Doc::PrepareDrawing()
     this->Process(&prepareProcessingLists, &prepareProcessingListsParams);
 
     // The tree is used to process each staff/layer/verse separately
-    // For this, we use an array of AttCommmonNComparison that looks for each object if it is of the type
+    // For this, we use an array of AttNIntegerComparison that looks for each object if it is of the type
     // and with @n specified
 
     IntTree_t::iterator staves;
     IntTree_t::iterator layers;
     IntTree_t::iterator verses;
+
+    /************ Resolve ties ************/
 
     // Process by layer for matching @tie attribute - we process notes and chords, looking at
     // GetTie values and pitch and oct for matching notes
@@ -321,8 +503,8 @@ void Doc::PrepareDrawing()
         for (layers = staves->second.child.begin(); layers != staves->second.child.end(); ++layers) {
             filters.clear();
             // Create ad comparison object for each type / @n
-            AttCommonNComparison matchStaff(STAFF, staves->first);
-            AttCommonNComparison matchLayer(LAYER, layers->first);
+            AttNIntegerComparison matchStaff(STAFF, staves->first);
+            AttNIntegerComparison matchLayer(LAYER, layers->first);
             filters.push_back(&matchStaff);
             filters.push_back(&matchLayer);
 
@@ -344,13 +526,15 @@ void Doc::PrepareDrawing()
         }
     }
 
+    /************ Resolve some pointers by layer ************/
+
     for (staves = prepareProcessingListsParams.m_layerTree.child.begin();
          staves != prepareProcessingListsParams.m_layerTree.child.end(); ++staves) {
         for (layers = staves->second.child.begin(); layers != staves->second.child.end(); ++layers) {
             filters.clear();
             // Create ad comparison object for each type / @n
-            AttCommonNComparison matchStaff(STAFF, staves->first);
-            AttCommonNComparison matchLayer(LAYER, layers->first);
+            AttNIntegerComparison matchStaff(STAFF, staves->first);
+            AttNIntegerComparison matchLayer(LAYER, layers->first);
             filters.push_back(&matchStaff);
             filters.push_back(&matchLayer);
 
@@ -360,6 +544,8 @@ void Doc::PrepareDrawing()
         }
     }
 
+    /************ Resolve lyric connectors ************/
+
     // Same for the lyrics, but Verse by Verse since Syl are TimeSpanningInterface elements for handling connectors
     for (staves = prepareProcessingListsParams.m_verseTree.child.begin();
          staves != prepareProcessingListsParams.m_verseTree.child.end(); ++staves) {
@@ -368,9 +554,9 @@ void Doc::PrepareDrawing()
                 // std::cout << staves->first << " => " << layers->first << " => " << verses->first << '\n';
                 filters.clear();
                 // Create ad comparison object for each type / @n
-                AttCommonNComparison matchStaff(STAFF, staves->first);
-                AttCommonNComparison matchLayer(LAYER, layers->first);
-                AttCommonNComparison matchVerse(VERSE, verses->first);
+                AttNIntegerComparison matchStaff(STAFF, staves->first);
+                AttNIntegerComparison matchLayer(LAYER, layers->first);
+                AttNIntegerComparison matchVerse(VERSE, verses->first);
                 filters.push_back(&matchStaff);
                 filters.push_back(&matchLayer);
                 filters.push_back(&matchVerse);
@@ -384,6 +570,8 @@ void Doc::PrepareDrawing()
             }
         }
     }
+
+    /************ Fill control event spanning ************/
 
     // Once <slur>, <ties> and @ties are matched but also syl connectors, we need to set them as running
     // TimeSpanningInterface to each staff they are extended. This does not need to be done staff by staff because we
@@ -399,14 +587,16 @@ void Doc::PrepareDrawing()
             fillStaffCurrentTimeSpanningParams.m_timeSpanningElements.size());
     }
 
+    /************ Resolve mRpt ************/
+
     // Process by staff for matching mRpt elements and setting the drawing number
     for (staves = prepareProcessingListsParams.m_layerTree.child.begin();
          staves != prepareProcessingListsParams.m_layerTree.child.end(); ++staves) {
         for (layers = staves->second.child.begin(); layers != staves->second.child.end(); ++layers) {
             filters.clear();
             // Create ad comparison object for each type / @n
-            AttCommonNComparison matchStaff(STAFF, staves->first);
-            AttCommonNComparison matchLayer(LAYER, layers->first);
+            AttNIntegerComparison matchStaff(STAFF, staves->first);
+            AttNIntegerComparison matchLayer(LAYER, layers->first);
             filters.push_back(&matchStaff);
             filters.push_back(&matchLayer);
 
@@ -417,22 +607,30 @@ void Doc::PrepareDrawing()
         }
     }
 
+    /************ Resolve endings ************/
+
     // Prepare the endings (pointers to the measure after and before the boundaries
     PrepareBoundariesParams prepareEndingsParams;
     Functor prepareEndings(&Object::PrepareBoundaries);
     this->Process(&prepareEndings, &prepareEndingsParams);
+
+    /************ Resolve floating groups for vertical alignment ************/
 
     // Prepare the floating drawing groups
     PrepareFloatingGrpsParams prepareFloatingGrpsParams;
     Functor prepareFloatingGrps(&Object::PrepareFloatingGrps);
     this->Process(&prepareFloatingGrps, &prepareFloatingGrpsParams);
 
-    Functor prepareLayerElementParts(&Object::PrepareLayerElementParts);
-    this->Process(&prepareLayerElementParts, NULL);
+    /************ Resolve cue size ************/
 
     // Prepare the drawing cue size
     Functor prepareDrawingCueSize(&Object::PrepareDrawingCueSize);
     this->Process(&prepareDrawingCueSize, NULL);
+
+    /************ Instanciate LayerElement parts (stemp, flag, dots, etc) ************/
+
+    Functor prepareLayerElementParts(&Object::PrepareLayerElementParts);
+    this->Process(&prepareLayerElementParts, NULL);
 
     /*
     // Alternate solution with StaffN_LayerN_VerseN_t
@@ -445,9 +643,9 @@ void Doc::PrepareDrawing()
             for (verses= layers->second.begin(); verses != layers->second.end(); ++verses) {
                 std::cout << staves->first << " => " << layers->first << " => " << verses->first << '\n';
                 filters.clear();
-                AttCommonNComparison matchStaff(&typeid(Staff), staves->first);
-                AttCommonNComparison matchLayer(&typeid(Layer), layers->first);
-                AttCommonNComparison matchVerse(&typeid(Verse), verses->first);
+                AttNIntegerComparison matchStaff(&typeid(Staff), staves->first);
+                AttNIntegerComparison matchLayer(&typeid(Layer), layers->first);
+                AttNIntegerComparison matchVerse(&typeid(Verse), verses->first);
                 filters.push_back(&matchStaff);
                 filters.push_back(&matchLayer);
                 filters.push_back(&matchVerse);
@@ -634,11 +832,6 @@ int Doc::GetPageCount() const
     return GetChildCount();
 }
 
-bool Doc::GetMidiExportDone() const
-{
-    return m_midiExportDone;
-}
-
 int Doc::GetGlyphHeight(wchar_t code, int staffSize, bool graceSize) const
 {
     int x, y, w, h;
@@ -661,6 +854,17 @@ int Doc::GetGlyphWidth(wchar_t code, int staffSize, bool graceSize) const
     if (graceSize) w = w * this->m_style->m_graceNum / this->m_style->m_graceDen;
     w = w * staffSize / 100;
     return w;
+}
+
+int Doc::GetGlyphAdvX(wchar_t code, int staffSize, bool graceSize) const
+{
+    Glyph *glyph = Resources::GetGlyph(code);
+    assert(glyph);
+    int advX = glyph->GetHorizAdvX();
+    advX = advX * m_drawingSmuflFontSize / glyph->GetUnitsPerEm();
+    if (graceSize) advX = advX * this->m_style->m_graceNum / this->m_style->m_graceDen;
+    advX = advX * staffSize / 100;
+    return advX;
 }
 
 Point Doc::ConvertFontPoint(const Glyph *glyph, const Point &fontPoint, int staffSize, bool graceSize) const
@@ -814,6 +1018,11 @@ int Doc::GetCueSize(int value) const
     return value * this->m_style->m_graceNum / this->m_style->m_graceDen;
 }
 
+void Doc::SetDrawingSmuflFontName(const std::string & fontName)
+{
+    m_drawingSmuflFont.SetFaceName(fontName.c_str());
+}
+
 FontInfo *Doc::GetDrawingSmuflFont(int staffSize, bool graceSize)
 {
     int value = m_drawingSmuflFontSize * staffSize / 100;
@@ -827,7 +1036,7 @@ FontInfo *Doc::GetDrawingLyricFont(int staffSize)
     m_drawingLyricFont.SetPointSize(m_drawingLyricFontSize * staffSize / 100);
     return &m_drawingLyricFont;
 }
-    
+
 char Doc::GetLeftMargin(const ClassId classId) const
 {
     if (classId == ACCID) return m_style->m_leftMarginAccid;
@@ -999,10 +1208,8 @@ Page *Doc::SetDrawingPage(int pageIdx)
     m_drawingLedgerLine = glyph_size * 72 / 100;
 
     glyph_size = GetGlyphWidth(SMUFL_E0A2_noteheadWhole, 100, 0);
-    
-    m_drawingBrevisWidth = (int)((glyph_size * 0.8) / 2);
 
-    m_drawingLongMensRestLineWidth = m_style->m_unit / 2;
+    m_drawingBrevisWidth = (int)((glyph_size * 0.8) / 2);
 
     return m_drawingPage;
 }
