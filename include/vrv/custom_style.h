@@ -189,7 +189,9 @@ namespace vrv {
 #define MSIGN_DOT_DIAM 0.4
 // Relative size of figures in proportions
 #define PROPRT_SIZE_FACTOR 0.5
-// Linewidth for staff lines in mensural notation, rel. to "normal" width of staff lines */
+// Linewidth for staff lines in mensural notation, rel. to "normal" width of staff lines.
+// NB: As of Nov. 2017, this is unused!; it should be used with DEFAULT_STAFFLINE_WIDTH
+// on mensural staves.
 #define MENSURAL_LINEWIDTH_FACTOR 0.5
 
 /**

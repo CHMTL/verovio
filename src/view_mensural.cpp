@@ -55,9 +55,8 @@ void View::DrawMensuralNote(DeviceContext *dc, LayerElement *element, Layer *lay
     int noteY = element->GetDrawingY();
     int xNote, xStem;
     int drawingDur;
-    int staffY = staff->GetDrawingY();
+    //int staffY = staff->GetDrawingY();
     wchar_t charCode;
-    int verticalCenter = 0;
     bool mensural_black = (staff->m_drawingNotationType == NOTATIONTYPE_mensural_black);
 
     xStem = element->GetDrawingX();
@@ -78,7 +77,6 @@ void View::DrawMensuralNote(DeviceContext *dc, LayerElement *element, Layer *lay
     data_STEMDIRECTION layerStemDir;
     data_STEMDIRECTION stemDir = STEMDIRECTION_NONE;
 
-    verticalCenter = staffY - m_doc->GetDrawingDoubleUnit(staff->m_drawingStaffSize) * 2;
     // In mensural notation, stem direction is controlled entirely by duration; it has nothing
     // to do with the note's vertical position on the staff.
     if (note->HasStemDir()) {
@@ -91,8 +89,9 @@ void View::DrawMensuralNote(DeviceContext *dc, LayerElement *element, Layer *lay
         if (drawingDur < DUR_1)
             stemDir = STEMDIRECTION_down;
         else
-            stemDir = (noteY > verticalCenter) ? STEMDIRECTION_down : STEMDIRECTION_up;
+            stemDir = STEMDIRECTION_up;
     }
+    note->SetDrawingStemDir(stemDir);
 
     xNote = xStem - radius;
 
@@ -151,6 +150,7 @@ void View::DrawMensuralRest(DeviceContext *dc, LayerElement *element, Layer *lay
     assert(measure);
 
     wchar_t charCode;
+    int loc;
 
     Rest *rest = dynamic_cast<Rest *>(element);
     assert(rest);
@@ -158,11 +158,22 @@ void View::DrawMensuralRest(DeviceContext *dc, LayerElement *element, Layer *lay
     bool drawingCueSize = rest->GetDrawingCueSize();
     int drawingDur = rest->GetActualDur();
     int x = element->GetDrawingX();
-    int y = element->GetDrawingY();
+    int yStaffTop = staff->GetDrawingY();
+
+    if (rest->HasLoc()) loc = rest->GetLoc();
+    else loc = DefaultMensuralRestLoc(drawingDur, staff);
+    
+    if (drawingDur==DUR_MX || drawingDur==DUR_LG) {
+        DrawMaximaOrLongaRest(dc, x, yStaffTop, element, loc, staff);
+        return;
+    }
+
+    if (drawingDur > DUR_2) {
+        x -= m_doc->GetGlyphWidth(SMUFL_E0A3_noteheadHalf, staff->m_drawingStaffSize,
+                                  drawingCueSize) / 2;
+    }
 
     switch (drawingDur) {
-        case DUR_MX: charCode = SMUFL_E9F0_mensuralRestMaxima; break;
-        case DUR_LG: charCode = SMUFL_E9F2_mensuralRestLongaImperfecta; break;
         case DUR_BR: charCode = SMUFL_E9F3_mensuralRestBrevis; break;
         case DUR_1: charCode = SMUFL_E9F4_mensuralRestSemibrevis; break;
         case DUR_2: charCode = SMUFL_E9F5_mensuralRestMinima; break;
@@ -172,7 +183,32 @@ void View::DrawMensuralRest(DeviceContext *dc, LayerElement *element, Layer *lay
         default:
             charCode = 0; // This should never happen
     }
-    DrawSmuflCode(dc, x, y, charCode, staff->m_drawingStaffSize, drawingCueSize);
+
+    // Duration is brevis or shorter.
+    int nominalStaffSize = m_doc->GetDrawingStaffSize(staff->m_drawingStaffSize);
+    int staffSpace = nominalStaffSize/4;
+    int yStaffBottom = yStaffTop - ((staff->m_drawingLines-1)*staffSpace);
+    int yOffset = (loc*staffSpace)/2;
+    DrawSmuflCode(dc, x, yStaffBottom+yOffset, charCode, staff->m_drawingStaffSize, false);
+}
+
+int View::DefaultMensuralRestLoc(int drawingDur, Staff *staff)
+{
+    int loc;
+    // Set default vertical position offset, in staff half-spaces (called "units" elsewhere
+    // in Verovio).
+    if (staff->m_drawingLines==5) {
+        loc = (drawingDur==DUR_MX || drawingDur==DUR_LG) ? 2 : 4;
+    }
+    else if (staff->m_drawingLines==1) {
+        loc = (drawingDur==DUR_MX || drawingDur==DUR_LG) ? 0 : -1;
+    }
+    else
+        // Surely we can come up with better defaults for other numbers of staff lines, but it
+        // may not be at all important.
+        loc = 0;
+    
+    return loc;
 }
 
 void View::DrawMensur(DeviceContext *dc, LayerElement *element, Layer *layer, Staff *staff, Measure *measure)
@@ -298,8 +334,9 @@ void View::DrawMensuralStem(DeviceContext *dc, LayerElement *object, Staff *staf
 
         if (nbFlags > 0) {
             for (int i = 0; i < nbFlags; i++)
-                DrawSmuflCode(dc, x2 - halfStemWidth, stemY1 - i * flagStemHeight,
-                    SMUFL_E949_mensuralCombStemUpFlagSemiminima, staff->m_drawingStaffSize, drawingCueSize);
+                DrawSmuflCode(dc, x2 - halfStemWidth, stemY1 + (i * flagStemHeight),
+                    SMUFL_E949_mensuralCombStemUpFlagSemiminima,
+                    staff->m_drawingStaffSize, drawingCueSize);
         }
         else
             DrawFilledRectangle(dc, x2 - halfStemWidth, stemY1, x2 + halfStemWidth, stemY2);
@@ -460,7 +497,7 @@ void View::DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, L
     int pseudoStaffSize = (int)(TEMP_MNOTEHEAD_SIZE_FACTOR * staff->m_drawingStaffSize);
     int xLeft, xRight, yTop, yBottom, y3, y4;
     // int yy2, y5; // unused
-    int verticalCenter, up, height;
+    int up, height;
     bool mensural_black = (staff->m_drawingNotationType == NOTATIONTYPE_mensural_black);
     bool fillNotehead = (mensural_black || note->GetColored()) && !(mensural_black && note->GetColored());
     height = m_doc->GetDrawingBeamWidth(pseudoStaffSize, false) / 2;
@@ -494,17 +531,12 @@ void View::DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, L
     DrawVerticalLine(dc, y3, y4, xLeft, m_doc->GetDrawingStemWidth(pseudoStaffSize)); // corset lateral
     DrawVerticalLine(dc, y3, y4, xRight, m_doc->GetDrawingStemWidth(pseudoStaffSize));
 
-    // Calculate position of stem and draw it
+    // Calculate position of stem and draw it. If note->GetDrawingStemDir() is NONE, assume stem down;
+    //   the durations we're considering should never be stem up anyway.
     if (note->GetActualDur() < DUR_BR) {
-        verticalCenter = staff->GetDrawingY() - m_doc->GetDrawingDoubleUnit(staff->m_drawingStaffSize) * 2;
-        up = (y < verticalCenter) ? true : false;
+        up = false;
         if (note->GetDrawingStemDir() != STEMDIRECTION_NONE) {
-            if (note->GetDrawingStemDir() == STEMDIRECTION_up) {
-                up = true;
-            }
-            else {
-                up = false;
-            }
+            up = (note->GetDrawingStemDir() == STEMDIRECTION_up);
         }
 
         if (!up) {
@@ -593,9 +625,7 @@ void View::DrawLigature(DeviceContext *dc, LayerElement *element, Layer *layer, 
 
     Ligature *ligature = dynamic_cast<Ligature *>(element);
     assert(ligature);
-    AttLigatureLog *ligatureLog = dynamic_cast<AttLigatureLog *>(element);
-    assert(ligatureLog);
-LogDebug("DrawLigature %u: form is %s", element, ligatureLog->GetForm()==LIGATUREFORM_recta? "recta" : "obliqua");
+//LogDebug("DrawLigature %u: form is %s", element, ligature->GetForm()==LIGATUREFORM_recta? "recta" : "obliqua");
     dc->StartGraphic(ligature, "", ligature->GetUuid());
 
     // Draw children (notes)
@@ -617,9 +647,7 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
     Ligature *ligature = dynamic_cast<Ligature*>(note->GetFirstParent(LIGATURE));
     assert(ligature);
     
-    AttLigatureLog *ligatureLog = dynamic_cast<AttLigatureLog *>(note->GetParent());
-    assert(ligatureLog);
-//LogDebug("DrawLigatureNote %u: form is %s", element, ligatureLog->GetForm()==LIGATUREFORM_recta? "recta" : "obliqua");
+//LogDebug("DrawLigatureNote %u: form is %s", element, ligature->GetForm()==LIGATUREFORM_recta? "recta" : "obliqua");
 
     Note *firstNote = ligature->GetFirstNote();
     assert(firstNote);
@@ -637,7 +665,7 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
     yTop = y + m_doc->GetDrawingUnit(pseudoStaffSize);
     yBottom = y - m_doc->GetDrawingUnit(pseudoStaffSize);
     
-    if (ligatureLog->GetForm()==LIGATUREFORM_recta) {
+    if (ligature->GetForm()==LIGATUREFORM_recta) {
         xRight = xLeft + 2 * m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
 
         // Calculate bounding box for notehead and outer edges of frame, and draw it
@@ -665,7 +693,7 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
         DrawVerticalLine(dc, yTopEdge, yBotEdge, xLeft, m_doc->GetDrawingStemWidth(pseudoStaffSize)); // corset lateral
         DrawVerticalLine(dc, yTopEdge, yBotEdge, xRight, m_doc->GetDrawingStemWidth(pseudoStaffSize));
 
-        int notePos = ligature->PositionInLigature(note);
+        //int notePos = ligature->PositionInLigature(note);
         //if (notePos>0) ??;
         //LogDebug("DrawLigatureNote: note #%d y=%d, prev note y=%d", note->GetDrawingY(), ??);
         

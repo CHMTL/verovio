@@ -400,6 +400,7 @@ protected:
     void DrawRestLines(DeviceContext *dc, int x, int y_top, int y_bottom, int drawingDur);
     void CalculateLigaturePosX(LayerElement *element, Layer *layer, Staff *staff);
     void DrawProportFigures(DeviceContext *dc, int x, int y, int num, int numBase, Staff *staff);
+    int DefaultMensuralRestLoc(int drawingDur, Staff *staff);
     ///@}
 
     /**

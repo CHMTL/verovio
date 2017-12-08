@@ -344,6 +344,7 @@ void View::DrawBarLine(DeviceContext *dc, LayerElement *element, Layer *layer, S
     assert(measure);
 
     BarLine *barLine = dynamic_cast<BarLine *>(element);
+    float heightFactor;
     assert(barLine);
 
     if (barLine->GetForm() == BARRENDITION_invis) {
@@ -354,7 +355,20 @@ void View::DrawBarLine(DeviceContext *dc, LayerElement *element, Layer *layer, S
     dc->StartGraphic(element, "", element->GetUuid());
 
     int y = staff->GetDrawingY();
-    DrawBarLine(dc, y, y - m_doc->GetDrawingStaffSize(staff->m_drawingStaffSize), barLine);
+    
+    // The staff's m_drawingStaffSize seems always to be set as if it has 5 lines;
+    //   correct for the actual number of lines. On one-line staves, draw barline
+    //   from 1/2 space above the line to 1/2 space below.
+    int nominalStaffSize = m_doc->GetDrawingStaffSize(staff->m_drawingStaffSize);
+    if (staff->m_drawingLines==1) {
+        y += nominalStaffSize/8;
+        DrawBarLine(dc, y, y - nominalStaffSize/4, barLine);
+    }
+    else {
+        heightFactor = (float)(staff->m_drawingLines-1)/4.0;
+        int realStaffSize = nominalStaffSize*heightFactor;
+        DrawBarLine(dc, y, y - realStaffSize, barLine);
+    }
 
     dc->EndGraphic(element, this);
 }
