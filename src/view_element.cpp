@@ -168,6 +168,7 @@ void View::DrawLayerElement(DeviceContext *dc, LayerElement *element, Layer *lay
         LogError("Element '%s' cannot be drawn", element->GetClassName().c_str());
     }
 
+   //LogDebug("> Element %ld class='%s' x=%d", element, element->GetClassName().c_str(), element->GetDrawingX());
     m_currentColour = previousColor;
 }
 
@@ -523,7 +524,7 @@ void View::DrawBTrem(DeviceContext *dc, LayerElement *element, Layer *layer, Sta
     // by default draw 3 slashes (e.g., for a temolo on a whole note)
     if (stemMod == STEMMODIFIER_NONE) stemMod = STEMMODIFIER_3slash;
     for (s = 1; s < stemMod; s++) {
-        DrawObliquePolygon(dc, x - width / 2, y, x + width / 2, y + height, height);
+        DrawVSidedParallogram(dc, x - width / 2, y, x + width / 2, y + height, height);
         y += step;
     }
 
@@ -707,9 +708,27 @@ void View::DrawDot(DeviceContext *dc, LayerElement *element, Layer *layer, Staff
     int x = element->GetDrawingX();
     int y = element->GetDrawingY();
 
-    // Use the note to which the points to for position
     if (dot->m_drawingNote && (m_doc->GetType() != Transcription)) {
-        x = dot->m_drawingNote->GetDrawingX() + m_doc->GetDrawingUnit(staff->m_drawingStaffSize) * 7 / 2;
+        // Ignore the dot's stored coordinates and compute its position from the note it points to.
+        // CWMN noteheads are all very nearly the same width but mensural noteheads aren't, so we have
+        // to take into account the duration of mensural notes.
+        int drawingDur, xQtrUnitOffset, xOffset;
+        xQtrUnitOffset = 14;
+        if (dot->m_drawingNote->IsMensural()) {
+            bool mensural_black = (staff->m_drawingNotationType == NOTATIONTYPE_mensural_black);
+            drawingDur = dot->m_drawingNote->GetDrawingDur();
+            switch (drawingDur) {
+                case DUR_MX: xQtrUnitOffset = 20; break;
+                case DUR_LG: xQtrUnitOffset = 12; break;
+                case DUR_BR: xQtrUnitOffset = 12; break;
+                case DUR_1: xQtrUnitOffset = (mensural_black? 4 : 6); break;
+                case DUR_2: xQtrUnitOffset = (mensural_black? 6 : 8); break;
+                default: xQtrUnitOffset = (mensural_black? 6 : 8);
+            }
+        }
+        xOffset = m_doc->GetDrawingUnit(staff->m_drawingStaffSize) * xQtrUnitOffset / 4;
+        
+        x = dot->m_drawingNote->GetDrawingX() + xOffset;
         y = dot->m_drawingNote->GetDrawingY();
     }
 

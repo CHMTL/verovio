@@ -521,8 +521,8 @@ void View::DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, L
 
     if (!fillNotehead) {
         // Draw the top and bottom lines
-        DrawObliquePolygon(dc, xLeft, yTop, xRight, yTop, -height);
-        DrawObliquePolygon(dc, xLeft, yBottom, xRight, yBottom, height);
+        DrawVSidedParallogram(dc, xLeft, yTop, xRight, yTop, -height);
+        DrawVSidedParallogram(dc, xLeft, yBottom, xRight, yBottom, height);
     }
     else {
         DrawFilledRectangle(dc, xLeft, yTop, xRight, yBottom);
@@ -683,8 +683,8 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
         
         if (!fillNotehead) {
             //    double the bases of rectangles
-            DrawObliquePolygon(dc, xLeft, yTop, xRight, yTop, -height);
-            DrawObliquePolygon(dc, xLeft, yBottom, xRight, yBottom, height);
+            DrawVSidedParallogram(dc, xLeft, yTop, xRight, yTop, -height);
+            DrawVSidedParallogram(dc, xLeft, yBottom, xRight, yBottom, height);
         }
         else {
             DrawFilledRectangle(dc, xLeft, yTop, xRight, yBottom);
@@ -715,7 +715,7 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
             int widthFactor = (2 * height) / m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
             xRight = xLeft + widthFactor * m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
             LogDebug("DrawLigatureNote 2nd: parallelogram from %d,%d to %d,%d height=%d", s_drawLig1stX, s_drawLig1stYT, xRight, yBottom, height);
-            DrawVSidedParallogram(dc, xRight, yBottom, s_drawLig1stX, s_drawLig1stYT, thickness);
+            DrawVSidedParallogram(dc, s_drawLig1stX, s_drawLig1stYT, xRight, yTop, -thickness);
             View::s_drawingLigObliqua = false;
         }
         

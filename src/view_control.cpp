@@ -355,9 +355,9 @@ void View::DrawHairpin(
         dc->StartGraphic(hairpin, "spanning-hairpin", "");
     // dc->DeactivateGraphic();
 
-    DrawObliquePolygon(
+    DrawVSidedParallogram(
         dc, x1, y1 - startY / 2, x2, y2 - endY / 2, m_doc->GetDrawingStemWidth(staff->m_drawingStaffSize));
-    DrawObliquePolygon(
+    DrawVSidedParallogram(
         dc, x1, y1 + startY / 2, x2, y2 + endY / 2, m_doc->GetDrawingStemWidth(staff->m_drawingStaffSize));
 
     // dc->ReactivateGraphic();
