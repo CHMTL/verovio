@@ -73,7 +73,7 @@ void display_usage()
     // -then debugging options
 
     // Options with both short and long forms
-    cerr << "Options (marked as * are repeatable)" << endl;
+    cerr << "Options (those marked as * are repeatable)" << endl;
 
     cerr << " -                          Use \"-\" as input file for reading from the standard input" << endl;
 
@@ -81,7 +81,7 @@ void display_usage()
 
     cerr << " -f, --format=INPUT_FORMAT  Select input format: darms, mei, pae, xml (default is mei)" << endl;
 
-    cerr << " -h, --page-height=HEIGHT   Specify the page height (default is " << DEFAULT_PAGE_HEIGHT << ")" << endl;
+    cerr << " -h, --page-height=HEIGHT   Page height (units = 1/10 mm.) (default is " << DEFAULT_PAGE_HEIGHT << ")" << endl;
 
     cerr << " -o, --outfile=FILE_NAME    Output file name (use \"-\" for standard output)" << endl;
 
@@ -94,7 +94,7 @@ void display_usage()
 
     cerr << " -v, --version              Display the version number" << endl;
 
-    cerr << " -w, --page-width=WIDTH     Specify the page width (default is " << DEFAULT_PAGE_WIDTH << ")" << endl;
+    cerr << " -w, --page-width=WIDTH     Page width (units = 1/10 mm.) (default is " << DEFAULT_PAGE_WIDTH << ")" << endl;
 
     // Options with long forms only
     cerr << endl << "Additional options" << endl;

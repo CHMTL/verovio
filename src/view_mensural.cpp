@@ -261,7 +261,7 @@ void View::DrawMensur(DeviceContext *dc, LayerElement *element, Layer *layer, St
 /* This function draws any flags as well as the stem. */
 
 void View::DrawMensuralStem(DeviceContext *dc, LayerElement *object, Staff *staff, data_STEMDIRECTION dir, int radius,
-    int xn, int originY, int heightY)
+    int xStemCtr, int originY, int heightY)
 {
     assert(object->GetDurationInterface());
 
@@ -301,11 +301,13 @@ void View::DrawMensuralStem(DeviceContext *dc, LayerElement *object, Staff *staf
     // If we have flags, add them to the height.
     int y1 = originY;
     int y2 = ((nbFlags > 0) ? (y1 + baseStem + totalFlagStemHeight) : (y1 + baseStem)) + heightY;
-    int x2;
+    int x;
     if (drawingDur < DUR_BR)
-        x2 = xn + radius;
-    else
-        x2 = xn;
+        x = xStemCtr + radius;
+    else {
+        x = xStemCtr;
+        x -= m_doc->GetDrawingStemWidth(staffSize) / 4;     // empirical adjustment
+    }
 
     if ((dir == STEMDIRECTION_up) && (y2 < verticalCenter)) {
         y2 = verticalCenter;
@@ -331,27 +333,26 @@ void View::DrawMensuralStem(DeviceContext *dc, LayerElement *object, Staff *staf
     int halfStemWidth = m_doc->GetDrawingStemWidth(staffSize) / 2;
     // draw the stems and the flags
     if (dir == STEMDIRECTION_up) {
-
         if (nbFlags > 0) {
             for (int i = 0; i < nbFlags; i++)
-                DrawSmuflCode(dc, x2 - halfStemWidth, stemY1 + (i * flagStemHeight),
+                DrawSmuflCode(dc, x - halfStemWidth, stemY1 + (i * flagStemHeight),
                     SMUFL_E949_mensuralCombStemUpFlagSemiminima,
                     staff->m_drawingStaffSize, drawingCueSize);
         }
         else
-            DrawFilledRectangle(dc, x2 - halfStemWidth, stemY1, x2 + halfStemWidth, stemY2);
+            DrawFilledRectangle(dc, x - halfStemWidth, stemY1, x + halfStemWidth, stemY2);
     }
     else {
         if (nbFlags > 0) {
             for (int i = 0; i < nbFlags; i++)
-                DrawSmuflCode(dc, x2 - halfStemWidth, stemY1 + i * flagStemHeight,
+                DrawSmuflCode(dc, x - halfStemWidth, stemY1 + i * flagStemHeight,
                     SMUFL_E94A_mensuralCombStemDownFlagSemiminima, staff->m_drawingStaffSize, drawingCueSize);
         }
         else
-            DrawFilledRectangle(dc, x2 - halfStemWidth, stemY1, x2 + halfStemWidth, stemY2);
+            DrawFilledRectangle(dc, x - halfStemWidth, stemY1, x + halfStemWidth, stemY2);
     }
 
-    // Store the start and end values
+    // Store the stem direction
     StemmedDrawingInterface *interface = object->GetStemmedDrawingInterface();
     assert(interface);
     interface->SetDrawingStemDir(dir);
