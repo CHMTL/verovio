@@ -617,7 +617,9 @@ void View::DrawRestLines(DeviceContext *dc, int x, int y_top, int y_bottom, int 
 }
 
     
-void View::DrawLigature(DeviceContext *dc, LayerElement *element, Layer *layer, Staff *staff, Measure *measure)
+#define OBLIQUA_SLOPE 0.30
+
+    void View::DrawLigature(DeviceContext *dc, LayerElement *element, Layer *layer, Staff *staff, Measure *measure)
 {
     assert(dc);
     assert(element);
@@ -648,8 +650,6 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
     Ligature *ligature = dynamic_cast<Ligature*>(note->GetFirstParent(LIGATURE));
     assert(ligature);
     
-//LogDebug("DrawLigatureNote %u: form is %s", element, ligature->GetForm()==LIGATUREFORM_recta? "recta" : "obliqua");
-
     Note *firstNote = ligature->GetFirstNote();
     assert(firstNote);
     
@@ -660,19 +660,20 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
     int height = m_doc->GetDrawingBeamWidth(pseudoStaffSize, false) / 2;
     
     xLeft = firstNote->GetDrawingX();
-    xLeft += (2 * m_doc->GetDrawingBrevisWidth(pseudoStaffSize) * ligature->PositionInLigature(note));
     
     int y = note->GetDrawingY();
     yTop = y + m_doc->GetDrawingUnit(pseudoStaffSize);
     yBottom = y - m_doc->GetDrawingUnit(pseudoStaffSize);
     
     if (ligature->GetForm()==LIGATUREFORM_recta) {
+        // Move consecutive notes of the ligature to right by the width of a brevis
+        xLeft += (2 * m_doc->GetDrawingBrevisWidth(pseudoStaffSize) * ligature->PositionInLigature(note));
         xRight = xLeft + 2 * m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
 
         // Calculate bounding box for notehead and outer edges of frame, and draw it
         if (note->GetActualDur() == DUR_MX) {
             // Maxima is twice the width of brevis
-            xRight += 2* m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
+            xRight += 2 * m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
         }
         
         yTopEdge = yTop;
@@ -683,7 +684,7 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
         }
         
         if (!fillNotehead) {
-            //    double the bases of rectangles
+            // double the bases of rectangles
             DrawVSidedParallogram(dc, xLeft, yTop, xRight, yTop, -height);
             DrawVSidedParallogram(dc, xLeft, yBottom, xRight, yBottom, height);
         }
@@ -693,14 +694,9 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
         
         DrawVerticalLine(dc, yTopEdge, yBotEdge, xLeft, m_doc->GetDrawingStemWidth(pseudoStaffSize)); // corset lateral
         DrawVerticalLine(dc, yTopEdge, yBotEdge, xRight, m_doc->GetDrawingStemWidth(pseudoStaffSize));
-
-        //int notePos = ligature->PositionInLigature(note);
-        //if (notePos>0) ??;
-        //LogDebug("DrawLigatureNote: note #%d y=%d, prev note y=%d", note->GetDrawingY(), ??);
-        
     }
     else {
-        // We're drawing an obliqua. If the first note, just save its coordinates; if the 2nd, really draw it.
+        // We're drawing an obliqua. If this is the 1st note, just save its coordinates; if the 2nd, really draw it.
         if (!View::s_drawingLigObliqua)	{
             // First note of oblique ligature: just save its coordinates
             s_drawLig1stX = xLeft;
@@ -710,12 +706,12 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
             View::s_drawingLigObliqua = true;
         }
         else {
-            // Second note of oblique ligature: draw parallelogram with width proportional to range
+            // 2nd note of oblique ligature: draw parallelogram with width proportional to range, so slope is constant
             int thickness = yTop-yBottom;
-            int height = s_drawLig1stYT-yTop;
-            int widthFactor = (2 * height) / m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
-            xRight = xLeft + widthFactor * m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
-            LogDebug("DrawLigatureNote 2nd: parallelogram from %d,%d to %d,%d height=%d", s_drawLig1stX, s_drawLig1stYT, xRight, yBottom, height);
+            int deltaY = s_drawLig1stYT-yTop;
+            int deltaX = abs(deltaY) / OBLIQUA_SLOPE;
+            xRight = s_drawLig1stX + deltaX;
+            LogDebug("DrawLigatureNote 2nd: parallelogram from %d,%d to %d,%d deltaY=%d", s_drawLig1stX, s_drawLig1stYT, xRight, yBottom, deltaY);
             DrawVSidedParallogram(dc, s_drawLig1stX, s_drawLig1stYT, xRight, yTop, -thickness);
             View::s_drawingLigObliqua = false;
         }
