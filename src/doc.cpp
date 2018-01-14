@@ -1207,9 +1207,7 @@ Page *Doc::SetDrawingPage(int pageIdx)
     glyph_size = GetGlyphWidth(SMUFL_E0A3_noteheadHalf, 100, 0);
     m_drawingLedgerLine = glyph_size * 72 / 100;
 
-    glyph_size = GetGlyphWidth(SMUFL_E0A2_noteheadWhole, 100, 0);
-
-    m_drawingBrevisWidth = (int)((glyph_size * 0.8) / 2);
+    m_drawingBrevisWidth = (int)(m_drawingDoubleUnit * BREVIS_WIDTH_FACTOR);
 
     return m_drawingPage;
 }

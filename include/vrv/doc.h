@@ -401,9 +401,9 @@ private:
 
     /** The page currently being drawn */
     Page *m_drawingPage;
-    /** Half a the space between to staff lines */
+    /** Half the space between two staff lines (center to center) */
     int m_drawingUnit;
-    /** Space between to staff lines */
+    /** Space between two staff lines (center to center) */
     int m_drawingDoubleUnit;
     /** Height of a five line staff */
     int m_drawingStaffSize;
@@ -418,7 +418,7 @@ private:
     /** Brevis width */
     int m_drawingBrevisWidth;
 
-    /** Smufl font size (100 par defaut) */
+    /** SMuFL font size (100 par defaut) */
     int m_drawingSmuflFontSize;
     /** Lyric font size  */
     int m_drawingLyricFontSize;

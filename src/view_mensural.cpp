@@ -477,7 +477,7 @@ void View::CalculateLigaturePosX(LayerElement *element, Layer *layer, Staff *sta
      }
      if (previousNote->m_lig && previousNote->m_dur <= DUR_1)
      {
-     element->SetDrawingX(previous->GetDrawingX() + m_doc->m_drawingBrevisWidth[staff->m_drawingStaffSize] * 2);
+     element->SetDrawingX(previous->GetDrawingX() + m_doc->m_drawingBrevisWidth[staff->m_drawingStaffSize]);
      }
      */
     return;
@@ -505,10 +505,10 @@ void View::DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, L
 
     // Calculate bounding box for notehead and draw it
     xLeft = element->GetDrawingX();
-    xRight = xLeft + 2 * m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
+    xRight = xLeft + m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
     if (note->GetActualDur() == DUR_MX) {
         // Maxima is twice the width of brevis
-        xRight += 2* m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
+        xRight += m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
     }
     yTop = y + m_doc->GetDrawingUnit(pseudoStaffSize);
     yBottom = y - m_doc->GetDrawingUnit(pseudoStaffSize);
@@ -617,9 +617,7 @@ void View::DrawRestLines(DeviceContext *dc, int x, int y_top, int y_bottom, int 
 }
 
     
-#define OBLIQUA_SLOPE 0.30
-
-    void View::DrawLigature(DeviceContext *dc, LayerElement *element, Layer *layer, Staff *staff, Measure *measure)
+void View::DrawLigature(DeviceContext *dc, LayerElement *element, Layer *layer, Staff *staff, Measure *measure)
 {
     assert(dc);
     assert(element);
@@ -667,13 +665,13 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
     
     if (ligature->GetForm()==LIGATUREFORM_recta) {
         // Move consecutive notes of the ligature to right by the width of a brevis
-        xLeft += (2 * m_doc->GetDrawingBrevisWidth(pseudoStaffSize) * ligature->PositionInLigature(note));
-        xRight = xLeft + 2 * m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
+        xLeft += (m_doc->GetDrawingBrevisWidth(pseudoStaffSize) * ligature->PositionInLigature(note));
+        xRight = xLeft + m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
 
         // Calculate bounding box for notehead and outer edges of frame, and draw it
         if (note->GetActualDur() == DUR_MX) {
             // Maxima is twice the width of brevis
-            xRight += 2 * m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
+            xRight += m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
         }
         
         yTopEdge = yTop;
@@ -694,6 +692,16 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
         
         DrawVerticalLine(dc, yTopEdge, yBotEdge, xLeft, m_doc->GetDrawingStemWidth(pseudoStaffSize)); // corset lateral
         DrawVerticalLine(dc, yTopEdge, yBotEdge, xRight, m_doc->GetDrawingStemWidth(pseudoStaffSize));
+        
+#ifdef NOTYET
+        // If there's an interval of at least ??3rd from this note to the previous one in the ligature, draw
+        // a vertical connecting line.
+        int notePos = ligature->PositionInLigature(note);
+        if (notePos>1) {
+            Note *prevNote = ligature->GetNthNote(notePos-1);
+            ??
+        }
+#endif
     }
     else {
         // We're drawing an obliqua. If this is the 1st note, just save its coordinates; if the 2nd, really draw it.

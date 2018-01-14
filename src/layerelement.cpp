@@ -433,7 +433,7 @@ int LayerElement::GetDrawingRadius(Doc *doc)
     assert(staff);
     
     if (dur <= DUR_BR) {
-        return doc->GetDrawingBrevisWidth(staff->m_drawingStaffSize);
+        return (doc->GetDrawingBrevisWidth(staff->m_drawingStaffSize)) / 2;
     }
     
     wchar_t code = SMUFL_E0A3_noteheadHalf;
