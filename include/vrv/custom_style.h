@@ -177,7 +177,7 @@ namespace vrv {
 // In the absence of a proper mensural font, these values give relatively good results.
 #define TEMP_MNOTEHEAD_SIZE_FACTOR 0.80
 #define TEMP_MACCID_SIZE_FACTOR 0.80
-#define TEMP_MAUGDOT_SIZE_FACTOR 0.60
+#define TEMP_MAUGDOT_SIZE_FACTOR 0.80
 // Width of the minima diamond relative to its height (black notation only)
 #define TEMP_MINIMA_WIDTH_FACTOR 0.60
 

@@ -149,6 +149,7 @@ void View::DrawDiamond(DeviceContext *dc, int x1, int y1, int height, int width,
 void View::DrawDot(DeviceContext *dc, int x, int y, int staffSize)
 {
     int r = std::max(ToDeviceContextX(m_doc->GetDrawingDoubleUnit(staffSize) / 5), 2);
+    r *= TEMP_MAUGDOT_SIZE_FACTOR;
 
     dc->SetPen(m_currentColour, 0, AxSOLID);
     dc->SetBrush(m_currentColour, AxSOLID);
