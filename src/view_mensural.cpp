@@ -497,11 +497,13 @@ void View::DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, L
     // staff; use _pseudoStaffSize_ to force this for fonts that don't consider that fact.
     int pseudoStaffSize = (int)(TEMP_MNOTEHEAD_SIZE_FACTOR * staff->m_drawingStaffSize);
     int xLeft, xRight, yTop, yBottom, y3, y4;
-    // int yy2, y5; // unused
-    int up, height;
+    int up, hBorderThickness, vBorderThickness;
     bool mensural_black = (staff->m_drawingNotationType == NOTATIONTYPE_mensural_black);
     bool fillNotehead = (mensural_black || note->GetColored()) && !(mensural_black && note->GetColored());
-    height = m_doc->GetDrawingBeamWidth(pseudoStaffSize, false) / 2;
+    
+    hBorderThickness = m_doc->GetDrawingBeamWidth(pseudoStaffSize, false) / 2;
+    if (mensural_black) hBorderThickness = m_doc->GetDrawingStemWidth(pseudoStaffSize);
+    vBorderThickness = m_doc->GetDrawingStemWidth(pseudoStaffSize);
 
     // Calculate bounding box for notehead and draw it
     xLeft = element->GetDrawingX();
@@ -521,16 +523,17 @@ void View::DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, L
     }
 
     if (!fillNotehead) {
-        // Draw the top and bottom lines
-        DrawVSidedParallogram(dc, xLeft, yTop, xRight, yTop, -height);
-        DrawVSidedParallogram(dc, xLeft, yBottom, xRight, yBottom, height);
+        // Draw top and bottom borders only if the head isn't filled.
+        DrawVSidedParallogram(dc, xLeft, yTop, xRight, yTop, -hBorderThickness);
+        DrawVSidedParallogram(dc, xLeft, yBottom, xRight, yBottom, hBorderThickness);
     }
     else {
         DrawFilledRectangle(dc, xLeft, yTop, xRight, yBottom);
     }
 
-    DrawVerticalLine(dc, y3, y4, xLeft, m_doc->GetDrawingStemWidth(pseudoStaffSize)); // corset lateral
-    DrawVerticalLine(dc, y3, y4, xRight, m_doc->GetDrawingStemWidth(pseudoStaffSize));
+    // Always draw left and right borders: they can extend beyond the filled area.
+    DrawVerticalLine(dc, y3, y4, xLeft, vBorderThickness); // corset lateral
+    DrawVerticalLine(dc, y3, y4, xRight, vBorderThickness);
 
     // Calculate position of stem and draw it. If note->GetDrawingStemDir() is NONE, assume stem down;
     //   the durations we're considering should never be stem up anyway.
@@ -626,7 +629,6 @@ void View::DrawLigature(DeviceContext *dc, LayerElement *element, Layer *layer, 
 
     Ligature *ligature = dynamic_cast<Ligature *>(element);
     assert(ligature);
-//LogDebug("DrawLigature %u: form is %s", element, ligature->GetForm()==LIGATUREFORM_recta? "recta" : "obliqua");
     dc->StartGraphic(ligature, "", ligature->GetUuid());
 
     // Draw children (notes)
@@ -693,15 +695,15 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
         DrawVerticalLine(dc, yTopEdge, yBotEdge, xLeft, m_doc->GetDrawingStemWidth(pseudoStaffSize)); // corset lateral
         DrawVerticalLine(dc, yTopEdge, yBotEdge, xRight, m_doc->GetDrawingStemWidth(pseudoStaffSize));
         
-#ifdef NOTYET
-        // If there's an interval of at least ??3rd from this note to the previous one in the ligature, draw
+        // If there's a vertical gap between this note and the previous one in the ligature, draw
         // a vertical connecting line.
         int notePos = ligature->PositionInLigature(note);
-        if (notePos>1) {
-            Note *prevNote = ligature->GetNthNote(notePos-1);
-            ??
+        if (notePos>0) {
+            Note *prevNote = dynamic_cast<Note *>(ligature->GetListPrevious(note));
+            int yPrevNote = prevNote->GetDrawingY();
+            if (abs(yTop-yPrevNote)>staff->m_drawingStaffSize)
+                DrawVerticalLine(dc, yPrevNote, yTop, xLeft, m_doc->GetDrawingStemWidth(pseudoStaffSize));
         }
-#endif
     }
     else {
         // We're drawing an obliqua. If this is the 1st note, just save its coordinates; if the 2nd, really draw it.
@@ -710,7 +712,7 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
             s_drawLig1stX = xLeft;
             s_drawLig1stYT = yTop;
             s_drawLig1stYB = yBottom;
-            LogDebug("DrawLigatureNote 1st: xLeft=%d yTop=%d yBottom=%d", xLeft, yTop, yBottom);
+            //LogDebug("DrawLigatureNote 1st: xLeft=%d yTop=%d yBottom=%d", xLeft, yTop, yBottom);
             View::s_drawingLigObliqua = true;
         }
         else {
@@ -719,7 +721,7 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
             int deltaY = s_drawLig1stYT-yTop;
             int deltaX = abs(deltaY) / OBLIQUA_SLOPE;
             xRight = s_drawLig1stX + deltaX;
-            LogDebug("DrawLigatureNote 2nd: parallelogram from %d,%d to %d,%d deltaY=%d", s_drawLig1stX, s_drawLig1stYT, xRight, yBottom, deltaY);
+            LogDebug("DrawLigatureNote: 2nd of oblique: parallelogram from %d,%d to %d,%d deltaY=%d", s_drawLig1stX, s_drawLig1stYT, xRight, yBottom, deltaY);
             DrawVSidedParallogram(dc, s_drawLig1stX, s_drawLig1stYT, xRight, yTop, -thickness);
             View::s_drawingLigObliqua = false;
         }

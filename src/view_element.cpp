@@ -710,7 +710,7 @@ void View::DrawDot(DeviceContext *dc, LayerElement *element, Layer *layer, Staff
 
     if (dot->m_drawingNote && (m_doc->GetType() != Transcription)) {
         // Ignore the dot's stored coordinates and compute its position from the note it points to.
-        // CWMN noteheads are all very nearly the same width but mensural noteheads aren't, so we have
+        // CWMN noteheads are all nearly the same width, but mensural noteheads aren't, so we have
         // to take into account the duration of mensural notes.
         int drawingDur, xQtrUnitOffset, xOffset;
         xQtrUnitOffset = 14;
@@ -718,9 +718,9 @@ void View::DrawDot(DeviceContext *dc, LayerElement *element, Layer *layer, Staff
             bool mensural_black = (staff->m_drawingNotationType == NOTATIONTYPE_mensural_black);
             drawingDur = dot->m_drawingNote->GetDrawingDur();
             switch (drawingDur) {
-                case DUR_MX: xQtrUnitOffset = 20; break;
-                case DUR_LG: xQtrUnitOffset = 12; break;
-                case DUR_BR: xQtrUnitOffset = 12; break;
+                case DUR_MX: xQtrUnitOffset = 16; break;
+                case DUR_LG: xQtrUnitOffset = 10; break;
+                case DUR_BR: xQtrUnitOffset = 10; break;
                 case DUR_1: xQtrUnitOffset = (mensural_black? 4 : 6); break;
                 case DUR_2: xQtrUnitOffset = (mensural_black? 6 : 8); break;
                 default: xQtrUnitOffset = (mensural_black? 6 : 8);
@@ -1152,6 +1152,8 @@ void View::DrawNote(DeviceContext *dc, LayerElement *element, Layer *layer, Staf
     drawingDur = note->GetDrawingDur();
     drawingDur = ((note->GetColored() == BOOLEAN_true) && drawingDur > DUR_1) ? (drawingDur + 1) : drawingDur;
 
+    LogDebug("DrawNote: at %d,%d", noteX, noteY);
+    
     /************** Noteheads: **************/
 
     if (drawingDur < DUR_1) {

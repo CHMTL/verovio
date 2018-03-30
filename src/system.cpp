@@ -357,6 +357,7 @@ int System::JustifyX(FunctorParams *functorParams)
     params->m_justifiableRatio
         = (double)(params->m_systemFullWidth - nonJustifiableWidth) / ((double)m_drawingJustifiableWidth);
 
+    LogMessage("Justification ratio %.3lf", params->m_justifiableRatio);
     if (params->m_justifiableRatio < 0.8) {
         // Arbitrary value for avoiding over-compressed justification
         LogWarning("Justification stop because of a ratio smaller than 0.8: %lf", params->m_justifiableRatio);
@@ -371,6 +372,7 @@ int System::JustifyX(FunctorParams *functorParams)
         && (this->GetIdx() == parent->GetChildCount() - 1)) {
         // HARDCODED
         if (params->m_justifiableRatio > 1.25) {
+            LogMessage("Justification skipped: on last system with justification ratio over limit.", params->m_justifiableRatio);
             return FUNCTOR_STOP;
         }
     }
