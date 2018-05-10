@@ -721,7 +721,7 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
             int deltaY = s_drawLig1stYT-yTop;
             int deltaX = abs(deltaY) / OBLIQUA_SLOPE;
             xRight = s_drawLig1stX + deltaX;
-            LogDebug("DrawLigatureNote: 2nd of oblique: parallelogram from %d,%d to %d,%d deltaY=%d", s_drawLig1stX, s_drawLig1stYT, xRight, yBottom, deltaY);
+            //LogDebug("DrawLigatureNote: 2nd of oblique: parallelogram from %d,%d to %d,%d deltaY=%d", s_drawLig1stX, s_drawLig1stYT, xRight, yBottom, deltaY);
             DrawVSidedParallogram(dc, s_drawLig1stX, s_drawLig1stYT, xRight, yTop, -thickness);
             View::s_drawingLigObliqua = false;
         }
