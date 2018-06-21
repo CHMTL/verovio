@@ -113,7 +113,7 @@ void View::DrawBeam(DeviceContext *dc, LayerElement *element, Layer *layer, Staf
 
     for (j = 0; j < fullBars; j++) {
         polygonHeight = beam->m_drawingParams.m_beamWidthBlack * shiftY;
-        DrawVSidedParallogram(dc, x1, y1, x2, y2, polygonHeight);
+        DrawVSidedParallogram(dc, x1, y1, x2, y2, polygonHeight, 0);
         y1 += polygonHeight;
         y2 += polygonHeight;
 
@@ -230,7 +230,7 @@ void View::DrawBeam(DeviceContext *dc, LayerElement *element, Layer *layer, Staf
                     y2 = beamElementCoords->at(noteIndexes.at(i + 1))->m_yBeam + barY;
                     polygonHeight = beam->m_drawingParams.m_beamWidthBlack * shiftY;
                     DrawVSidedParallogram(dc, beamElementCoords->at(idx)->m_x, y1,
-                        beamElementCoords->at(noteIndexes.at(i + 1))->m_x, y2, polygonHeight);
+                        beamElementCoords->at(noteIndexes.at(i + 1))->m_x, y2, polygonHeight, 0);
                 }
                 else if (beamElementCoords->at(idx)->m_partialFlags[testDur - DUR_8] == PARTIAL_RIGHT) {
                     y1 = beamElementCoords->at(idx)->m_yBeam + barY;
@@ -238,7 +238,7 @@ void View::DrawBeam(DeviceContext *dc, LayerElement *element, Layer *layer, Staf
                     y2 = beam->m_drawingParams.m_startingY + beam->m_drawingParams.m_verticalBoost + barY
                         + beam->m_drawingParams.m_beamSlope * x2;
                     polygonHeight = beam->m_drawingParams.m_beamWidthBlack * shiftY;
-                    DrawVSidedParallogram(dc, beamElementCoords->at(idx)->m_x, y1, x2, y2, polygonHeight);
+                    DrawVSidedParallogram(dc, beamElementCoords->at(idx)->m_x, y1, x2, y2, polygonHeight, 0);
                 }
                 else if (beamElementCoords->at(idx)->m_partialFlags[testDur - DUR_8] == PARTIAL_LEFT) {
                     y2 = beamElementCoords->at(idx)->m_yBeam + barY;
@@ -246,7 +246,7 @@ void View::DrawBeam(DeviceContext *dc, LayerElement *element, Layer *layer, Staf
                     y1 = beam->m_drawingParams.m_startingY + beam->m_drawingParams.m_verticalBoost + barY
                         + beam->m_drawingParams.m_beamSlope * x1;
                     polygonHeight = beam->m_drawingParams.m_beamWidthBlack * shiftY;
-                    DrawVSidedParallogram(dc, x1, y1, beamElementCoords->at(idx)->m_x, y2, polygonHeight);
+                    DrawVSidedParallogram(dc, x1, y1, beamElementCoords->at(idx)->m_x, y2, polygonHeight, 0);
                 }
             }
 
@@ -370,7 +370,7 @@ void View::DrawFTrem(DeviceContext *dc, LayerElement *element, Layer *layer, Sta
     }
 
     for (j = 0; j < fullBars; j++) {
-        DrawVSidedParallogram(dc, x1, y1, x2, y2, polygonHeight);
+        DrawVSidedParallogram(dc, x1, y1, x2, y2, polygonHeight, 0);
         y1 += polygonHeight;
         y2 += polygonHeight;
         y1 += dy1 * fTrem->m_drawingParams.m_beamWidthWhite;

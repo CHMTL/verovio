@@ -524,7 +524,7 @@ void View::DrawBTrem(DeviceContext *dc, LayerElement *element, Layer *layer, Sta
     // by default draw 3 slashes (e.g., for a temolo on a whole note)
     if (stemMod == STEMMODIFIER_NONE) stemMod = STEMMODIFIER_3slash;
     for (s = 1; s < stemMod; s++) {
-        DrawVSidedParallogram(dc, x - width / 2, y, x + width / 2, y + height, height);
+        DrawVSidedParallogram(dc, x - width / 2, y, x + width / 2, y + height, height, 0);
         y += step;
     }
 

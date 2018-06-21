@@ -429,7 +429,7 @@ protected:
         bool dimin = false, bool setBBGlyph = false);
     void DrawLyricString(DeviceContext *dc, int x, int y, std::wstring s, int staffSize = 100);
     void DrawFilledRectangle(DeviceContext *dc, int x1, int y1, int x2, int y2);
-    void DrawVSidedParallogram(DeviceContext *dc, int x1, int y1, int x2, int y2, int height);
+    void DrawVSidedParallogram(DeviceContext *dc, int x1, int y1, int x2, int y2, int height, int borderThickness);
     void DrawDiamond(DeviceContext *dc, int x1, int y1, int height, int width, bool fill, int linewidth);
     void DrawDot(DeviceContext *dc, int x, int y, int staffSize);
     ///@}

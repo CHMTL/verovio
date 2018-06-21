@@ -357,22 +357,22 @@ int System::JustifyX(FunctorParams *functorParams)
     params->m_justifiableRatio
         = (double)(params->m_systemFullWidth - nonJustifiableWidth) / ((double)m_drawingJustifiableWidth);
 
-    LogMessage("Justification ratio %.3lf", params->m_justifiableRatio);
+    LogMessage("Justification ratio %.3lf, system full width %d", params->m_justifiableRatio, params->m_systemFullWidth);
+    // Use arbitrary threshold to avoid over-compressing
     if (params->m_justifiableRatio < 0.8) {
-        // Arbitrary value for avoiding over-compressed justification
-        LogWarning("Justification stop because of a ratio smaller than 0.8: %lf", params->m_justifiableRatio);
+        LogWarning("Justification stop to avoid over-compressing: ratio is below minimum of 0.8.");
         LogWarning("\tSystem full width: %d", params->m_systemFullWidth);
         LogWarning("\tNon-justifiable width: %d", nonJustifiableWidth);
         LogWarning("\tDrawing justifiable width: %d", m_drawingJustifiableWidth);
     }
 
-    // Check if we are on the last page and on the last system - do no justify it if ratio > 1.25
+    // If we're on the last page and the last system, use arbitrary threshold to avoid overstretching
     // Eventually we should make this a parameter
     if ((parent->GetIdx() == parent->GetParent()->GetChildCount() - 1)
         && (this->GetIdx() == parent->GetChildCount() - 1)) {
         // HARDCODED
         if (params->m_justifiableRatio > 1.25) {
-            LogMessage("Justification skipped: on last system with justification ratio over limit.", params->m_justifiableRatio);
+            LogMessage("Justification skipped: on last system with ratio above maximum of 1.25.");
             return FUNCTOR_STOP;
         }
     }

@@ -91,14 +91,15 @@ void View::DrawFilledRectangle(DeviceContext *dc, int x1, int y1, int x2, int y2
 }
 
 /* Draw a parallelogram with vertical left and right sides, with the given height, and with
- top-left vertex at (x1,y1) and top-right vertex at (x2,y2). */
+top-left vertex at (x1,y1) and top-right vertex at (x2,y2). If borderThickness==0, fill the
+parallelogram; otherwise don't fill it, but draw the outline with that thickness. */
 
-void View::DrawVSidedParallogram(DeviceContext *dc, int x1, int y1, int x2, int y2, int height)
+void View::DrawVSidedParallogram(DeviceContext *dc, int x1, int y1, int x2, int y2, int height, int borderThickness)
 {
     Point p[4];
 
-    dc->SetPen(m_currentColour, 0, AxSOLID);
-    dc->SetBrush(m_currentColour, AxSOLID);
+    dc->SetPen(m_currentColour, borderThickness, AxSOLID);
+    dc->SetBrush(m_currentColour, (borderThickness==0? AxSOLID : AxTRANSPARENT));
 
     height = ToDeviceContextX(height);
     p[0].x = ToDeviceContextX(x1);
