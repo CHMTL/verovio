@@ -280,6 +280,8 @@ protected:
     void DrawDotsPart(DeviceContext *dc, int x, int y, unsigned char dots, Staff *staff);
     void DrawFermataAttr(DeviceContext *dc, LayerElement *element, Layer *layer, Staff *staff);
     void DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *layer, Staff *staff);
+    int DrawObliqua(DeviceContext *dc, int xLeft, int yTop, int yBottom, LayerElement *element, Layer *layer,
+                          Staff *staff);
     void DrawMeterSigFigures(DeviceContext *dc, int x, int y, int num, int den, Staff *staff);
     void DrawMRptPart(DeviceContext *dc, int xCentered, wchar_t smulfCode, int num, bool line, Staff *staff);
     void DrawRestBreve(DeviceContext *dc, int x, int y, Staff *staff);
@@ -395,7 +397,7 @@ protected:
     void DrawMensurHalfCircle(DeviceContext *dc, int x, int yy, Staff *staff);
     void DrawMensurReversedHalfCircle(DeviceContext *dc, int x, int yy, Staff *staff);
     void DrawMensurSlash(DeviceContext *dc, int x, int yy, Staff *staff);
-    void DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, Layer *layer, Staff *staff);
+    void DrawMaximaToBrevis(DeviceContext *dc, int xLeft, int y, LayerElement *element, Layer *layer, Staff *staff);
     void DrawMaximaOrLongaRest(DeviceContext *dc, int x, int yStaffTop, LayerElement *element, int loc, Staff *staff);
     void DrawRestLines(DeviceContext *dc, int x, int y_top, int y_bottom, int drawingDur);
     void CalculateLigaturePosX(LayerElement *element, Layer *layer, Staff *staff);

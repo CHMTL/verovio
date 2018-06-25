@@ -1157,7 +1157,7 @@ void View::DrawNote(DeviceContext *dc, LayerElement *element, Layer *layer, Staf
     /************** Noteheads: **************/
 
     if (drawingDur < DUR_1) {
-        DrawMaximaToBrevis(dc, noteY, element, layer, staff);
+        DrawMaximaToBrevis(dc, noteX, noteY, element, layer, staff);
     }
     // Whole notes
     else if (drawingDur == DUR_1) {

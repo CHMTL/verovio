@@ -48,16 +48,16 @@ void View::DrawMensuralNote(DeviceContext *dc, LayerElement *element, Layer *lay
     Note *note = dynamic_cast<Note *>(element);
     assert(note);
 
-    // Mensural noteheads are usually somewhat smaller than CMN noteheads for the same size
+    // Mensural noteheads are usually smaller than CMN noteheads for the same size
     // staff; use _pseudoStaffSize_ to force this for fonts that don't consider that fact.
     int pseudoStaffSize = (int)(TEMP_MNOTEHEAD_SIZE_FACTOR * staff->m_drawingStaffSize);
+    bool mensural_black = (staff->m_drawingNotationType == NOTATIONTYPE_mensural_black);
 
     int noteY = element->GetDrawingY();
     int xNote, xStem;
     int drawingDur;
     //int staffY = staff->GetDrawingY();
     wchar_t charCode;
-    bool mensural_black = (staff->m_drawingNotationType == NOTATIONTYPE_mensural_black);
 
     xStem = element->GetDrawingX();
 
@@ -97,12 +97,12 @@ void View::DrawMensuralNote(DeviceContext *dc, LayerElement *element, Layer *lay
 
     /************** Noteheads: **************/
 
-    // Ligature, maxima,longa, and brevis
+    // Ligature, maxima, longa, and brevis
     if (note->IsInLigature()) {
         DrawLigatureNote(dc, element, layer, staff);
     }
     else if (drawingDur < DUR_1) {
-        DrawMaximaToBrevis(dc, noteY, element, layer, staff);
+        DrawMaximaToBrevis(dc, element->GetDrawingX(), noteY, element, layer, staff);
     }
     // Semibrevis
     else if (drawingDur == DUR_1) {
@@ -483,7 +483,7 @@ void View::CalculateLigaturePosX(LayerElement *element, Layer *layer, Staff *sta
     return;
 }
 
-void View::DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, Layer *layer, Staff *staff)
+void View::DrawMaximaToBrevis(DeviceContext *dc, int xLeft, int y, LayerElement *element, Layer *layer, Staff *staff)
 {
     assert(dc);
     assert(element);
@@ -493,11 +493,12 @@ void View::DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, L
     Note *note = dynamic_cast<Note *>(element);
     assert(note);
 
-    // Mensural noteheads are usually quite a bit smaller than CMN noteheads for the same size
+    int xRight, yTop, yBottom, yTopEdge, yBotEdge;
+    int up, hBorderThickness, vBorderThickness;
+
+    // Mensural noteheads are usually smaller than CMN noteheads for the same size
     // staff; use _pseudoStaffSize_ to force this for fonts that don't consider that fact.
     int pseudoStaffSize = (int)(TEMP_MNOTEHEAD_SIZE_FACTOR * staff->m_drawingStaffSize);
-    int xLeft, xRight, yTop, yBottom, y3, y4;
-    int up, hBorderThickness, vBorderThickness;
     bool mensural_black = (staff->m_drawingNotationType == NOTATIONTYPE_mensural_black);
     bool fillNotehead = (mensural_black || note->GetColored()) && !(mensural_black && note->GetColored());
     
@@ -506,38 +507,39 @@ void View::DrawMaximaToBrevis(DeviceContext *dc, int y, LayerElement *element, L
     vBorderThickness = m_doc->GetDrawingStemWidth(pseudoStaffSize);
 
     // Calculate bounding box for notehead and draw it
-    xLeft = element->GetDrawingX();
-    xRight = xLeft + m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
-    if (note->GetActualDur() == DUR_MX) {
-        // Maxima is twice the width of brevis
-        xRight += m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
-    }
+	int noteWidth = m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
+	if (note->GetActualDur() == DUR_MX) {
+		noteWidth += m_doc->GetDrawingBrevisWidth(pseudoStaffSize);    // Maxima is twice the width of brevis
+	}
+	xRight = xLeft + noteWidth;
+
     yTop = y + m_doc->GetDrawingUnit(pseudoStaffSize);
     yBottom = y - m_doc->GetDrawingUnit(pseudoStaffSize);
 
-    y3 = yTop;
-    y4 = yBottom;
+    yTopEdge = yTop;
+    yBotEdge = yBottom;
     if (!mensural_black) {
-        y3 += (int)m_doc->GetDrawingUnit(pseudoStaffSize) / 2; // partie d'encadrement qui depasse
-        y4 -= (int)m_doc->GetDrawingUnit(pseudoStaffSize) / 2;
+        yTopEdge += (int)m_doc->GetDrawingUnit(pseudoStaffSize) / 2; // partie d'encadrement qui depasse
+        yBotEdge -= (int)m_doc->GetDrawingUnit(pseudoStaffSize) / 2;
     }
 
-    if (!fillNotehead) {
+    if (fillNotehead) {
+        DrawFilledRectangle(dc, xLeft, yTop, xRight, yBottom);
+    }
+    else {
         // Draw top and bottom borders only if the head isn't filled.
         DrawVSidedParallogram(dc, xLeft, yTop, xRight, yTop, -hBorderThickness, 0);
         DrawVSidedParallogram(dc, xLeft, yBottom, xRight, yBottom, hBorderThickness, 0);
     }
-    else {
-        DrawFilledRectangle(dc, xLeft, yTop, xRight, yBottom);
-    }
 
-    // Always draw left and right borders: they can extend beyond the filled area.
-    DrawVerticalLine(dc, y3, y4, xLeft, vBorderThickness); // corset lateral
-    DrawVerticalLine(dc, y3, y4, xRight, vBorderThickness);
+    // Always draw left and right borders. NB: They can extend beyond the filled area ("serifs").
+    DrawVerticalLine(dc, yTopEdge, yBotEdge, xLeft, vBorderThickness); // corset lateral
+    DrawVerticalLine(dc, yTopEdge, yBotEdge, xRight, vBorderThickness);
 
     // Calculate position of stem and draw it. If note->GetDrawingStemDir() is NONE, assume stem down;
     //   the durations we're considering should never be stem up anyway.
     if (note->GetActualDur() < DUR_BR) {
+    	int y3;
         up = false;
         if (note->GetDrawingStemDir() != STEMDIRECTION_NONE) {
             up = (note->GetDrawingStemDir() == STEMDIRECTION_up);
@@ -653,13 +655,14 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
     Note *firstNote = ligature->GetFirstNote();
     assert(firstNote);
     
-    int xLeft, xRight, yTop, yBottom, yTopEdge, yBotEdge, noteWidth;
+    int xLeft, yTop, yBottom, noteWidth;
+
+    // Mensural noteheads are usually smaller than CMN noteheads for the same size
+    // staff; use _pseudoStaffSize_ to force this for fonts that don't consider that fact.
     int pseudoStaffSize = (int)(TEMP_MNOTEHEAD_SIZE_FACTOR * staff->m_drawingStaffSize);
-    bool mensural_black = (staff->m_drawingNotationType == NOTATIONTYPE_mensural_black);
-    bool fillNotehead = (mensural_black || note->GetColored()) && !(mensural_black && note->GetColored());
-    int height = m_doc->GetDrawingBeamWidth(pseudoStaffSize, false) / 2;
     
     if (note==firstNote) s_drawLigXNow = firstNote->GetDrawingX();
+    xLeft = s_drawLigXNow;
     
     int y = note->GetDrawingY();
     yTop = y + m_doc->GetDrawingUnit(pseudoStaffSize);
@@ -671,35 +674,12 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
     }
     
     if (noteForm==LIGATUREFORM_recta) {
-        xLeft = s_drawLigXNow;
+        // Calculate position and width of notehead, and draw it
         noteWidth = m_doc->GetDrawingBrevisWidth(pseudoStaffSize);
+        DrawMaximaToBrevis(dc, xLeft, note->GetDrawingY(), element, layer, staff);
         if (note->GetActualDur() == DUR_MX) {
             noteWidth += m_doc->GetDrawingBrevisWidth(pseudoStaffSize);    // Maxima is twice the width of brevis
         }
-        
-        xRight = s_drawLigXNow + noteWidth;
-
-        // Calculate bounding box for notehead and outer edges of frame, and draw it
-        yTopEdge = yTop;
-        yBotEdge = yBottom;
-        if (!mensural_black) {
-            yTopEdge += (int)m_doc->GetDrawingUnit(pseudoStaffSize) / 2; // partie d'encadrement qui depasse
-            yBotEdge -= (int)m_doc->GetDrawingUnit(pseudoStaffSize) / 2;
-        }
-        
-        if (!fillNotehead) {
-            // double the bases of rectangles
-            DrawVSidedParallogram(dc, xLeft, yTop, xRight, yTop, -height, 0);
-            DrawVSidedParallogram(dc, xLeft, yBottom, xRight, yBottom, height, 0);
-        }
-        else {
-            DrawFilledRectangle(dc, xLeft, yTop, xRight, yBottom);
-        }
-        
-        //LogDebug("firstNote=%x note=%x s_drawLigXNow=%d xLeft=%d", firstNote, note, s_drawLigXNow, xLeft);
-        DrawVerticalLine(dc, yTopEdge, yBotEdge, xLeft, m_doc->GetDrawingStemWidth(pseudoStaffSize)); // corset lateral
-        DrawVerticalLine(dc, yTopEdge, yBotEdge, xRight, m_doc->GetDrawingStemWidth(pseudoStaffSize));
-        
         // If there's a vertical gap between this note and the previous one in the ligature, draw
         // a vertical connecting line.
         int notePos = ligature->PositionInLigature(note);
@@ -724,23 +704,8 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
             View::s_drawingLigObliqua = true;
         }
         else {
-            // 2nd note of oblique ligature: draw parallelogram with width proportional to range, so slope is constant
-            int thickness = yTop-yBottom;
-            int deltaY = s_drawLig1stYT-yTop;
-            int deltaX = abs(deltaY) / OBLIQUA_SLOPE;
-            int minLength = 3 * m_doc->GetDrawingUnit(pseudoStaffSize);
-            // ...except don't make it too short, no matter what.
-            if (deltaX<minLength) deltaX = minLength;
-            xRight = s_drawLig1stX + deltaX;
-            //LogDebug("DrawLigatureNote: 2nd of oblique: parallelogram from %d,%d to %d,%d deltaY=%d", s_drawLig1stX, s_drawLig1stYT, xRight, yBottom, deltaY);
-            if (fillNotehead)
-                DrawVSidedParallogram(dc, s_drawLig1stX, s_drawLig1stYT, xRight, yTop, -thickness, 0);
-            else {
-                int borderThickness = m_doc->GetDrawingStemWidth(pseudoStaffSize);
-                DrawVSidedParallogram(dc, s_drawLig1stX, s_drawLig1stYT, xRight, yTop, -thickness, borderThickness);
-            }
+            s_drawLigXNow = DrawObliqua(dc, xLeft, yTop, yBottom, element, layer, staff);
             View::s_drawingLigObliqua = false;
-            s_drawLigXNow = xRight;
         }
         
     }
@@ -748,6 +713,87 @@ void View::DrawLigatureNote(DeviceContext *dc, LayerElement *element, Layer *lay
     return;
 }
 
+    // Draw an oblique ligature: a parallelogram with possible embellishments.
+
+int View::DrawObliqua(DeviceContext *dc, int xLeft, int yTop, int yBottom, LayerElement *element, Layer *layer,
+                       Staff *staff)
+{
+    assert(dc);
+    assert(element);
+    assert(layer);
+    assert(staff);
+    
+    Note *note = dynamic_cast<Note *>(element);
+    assert(note);
+    
+    int stemUp, hBorderThickness, vBorderThickness;
+    
+    // Mensural noteheads are usually smaller than CMN noteheads for the same size
+    // staff; use _pseudoStaffSize_ to force this for fonts that don't consider that fact.
+    int pseudoStaffSize = (int)(TEMP_MNOTEHEAD_SIZE_FACTOR * staff->m_drawingStaffSize);
+    bool mensural_black = (staff->m_drawingNotationType == NOTATIONTYPE_mensural_black);
+    bool fillNote = (mensural_black || note->GetColored()) && !(mensural_black && note->GetColored());
+    
+    hBorderThickness = m_doc->GetDrawingBeamWidth(pseudoStaffSize, false) / 2;
+    if (mensural_black) hBorderThickness = m_doc->GetDrawingStemWidth(pseudoStaffSize);
+    vBorderThickness = m_doc->GetDrawingStemWidth(pseudoStaffSize);
+    
+    // Draw parallelogram with width proportional to range, so slope is constant
+    int height = yTop-yBottom;
+    int deltaY = s_drawLig1stYT-yTop;
+    int deltaX = abs(deltaY) / OBLIQUA_SLOPE;
+    
+    // However, don't make the parallelogram too short no matter what.
+    int minLength = OBLIQUA_MIN_LENGTH * m_doc->GetDrawingUnit(staff->m_drawingStaffSize);
+    if (deltaX<minLength) deltaX = minLength;
+    int xRight = xLeft + deltaX;
+    //LogDebug("DrawObliqua: 2nd of oblique: parallelogram from %d,%d to %d,%d deltaY=%d", xLeft, s_drawLig1stYT, xRight, yBottom, deltaY);
+    
+    
+    if (fillNote) {
+        DrawVSidedParallogram(dc, xLeft, s_drawLig1stYT, xRight, yTop, -height, 0);
+    }
+    else {
+        // Draw top and bottom borders only if the head isn't filled.
+        DrawVSidedParallogram(dc, xLeft, s_drawLig1stYT, xRight, yTop, -hBorderThickness, 0);
+        DrawVSidedParallogram(dc, xLeft, s_drawLig1stYT-height, xRight, yTop-height, hBorderThickness, 0);
+    }
+    
+    // Always draw left and right borders. NB: They can extend beyond the filled area ("serifs").
+    int extraLen = 0;
+    // The factor 3/4 in computing _extraLen_ is empirical; 1/2 is too short, 1 too long.
+    if (!mensural_black) extraLen = (int)(3*m_doc->GetDrawingUnit(pseudoStaffSize)/4);
+    int yLTopEdge = s_drawLig1stYT+extraLen;
+    int yLBotEdge = s_drawLig1stYT-height-extraLen;
+    int yRTopEdge = yTop+extraLen;
+    int yRBotEdge = yBottom-extraLen;
+    DrawVerticalLine(dc, yLTopEdge, yLBotEdge, xLeft, vBorderThickness); // corset lateral
+    DrawVerticalLine(dc, yRTopEdge, yRBotEdge, xRight, vBorderThickness);
+    
+#ifdef NOTYET
+    // Calculate position of stem and draw it. If note->GetDrawingStemDir() is NONE, assume stem down??
+    if (note->GetActualDur() < DUR_BR) {
+        int y3;
+        stemUp = false;
+        if (note->GetDrawingStemDir() != STEMDIRECTION_NONE) {
+            stemUp = (note->GetDrawingStemDir() == STEMDIRECTION_up);
+        }
+        
+        if (!stemUp) {
+            y3 = yTop - m_doc->GetDrawingUnit(pseudoStaffSize) * 8;
+            yBottom = yTop;
+        }
+        else {
+            y3 = yTop + m_doc->GetDrawingUnit(pseudoStaffSize) * 6;
+            yBottom = yTop;
+        }
+        DrawVerticalLine(dc, yBottom, y3, xRight, m_doc->GetDrawingStemWidth(pseudoStaffSize));
+    }
+#endif
+    
+    return xRight;
+}
+    
 void View::DrawProportFigures(DeviceContext *dc, int x, int y, int num, int numBase, Staff *staff)
 {
     assert(dc);

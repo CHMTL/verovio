@@ -172,8 +172,8 @@ namespace vrv {
 #define TEMP_SLUR_CONTROL_POINT_FACTOR 5 // higher value means more curved at the end
 
 /* Style parameters for mensural notation */
-// Ratios of mensural notehead, accidental, aug. dot size to CMN for the same staff size
 
+// Ratios of mensural notehead, accidental, aug. dot size to CMN for the same staff size
 // In the absence of a proper mensural font, these values give relatively good results.
 #define TEMP_MNOTEHEAD_SIZE_FACTOR 0.80
 #define TEMP_MACCID_SIZE_FACTOR 0.80
@@ -181,11 +181,13 @@ namespace vrv {
 // Width of the minima diamond relative to its height (black notation only)
 #define TEMP_MINIMA_WIDTH_FACTOR 0.60
 
-// Size of mensuration sign circle relative to center-to-center space between staff lines
+// The term "staff space" below means the center-to-center space between staff lines.
+    
+// Size of mensuration sign circle relative to staff space
 #define MSIGN_CIRCLE_DIAM 1.7
 // Vertical position of center of mensuration sign as distance below top of the staff
 #define MSIGN_STAFFLINES_BELOW_TOP 2.0
-// Size of dot inside mensuration signs relative to center-to-center space between staff lines
+// Size of dot inside mensuration signs relative to staff space
 #define MSIGN_DOT_DIAM 0.4
 // Relative size of figures in proportions
 #define PROPRT_SIZE_FACTOR 0.5
@@ -195,7 +197,9 @@ namespace vrv {
 #define MENSURAL_LINEWIDTH_FACTOR 0.5
 // Slope of oblique ligatures
 #define OBLIQUA_SLOPE 0.55
-// Brevis width relative to center-to-center space between staff lines
+// Minimum length for obliqua, as multiple of staff space
+#define OBLIQUA_MIN_LENGTH 3.2
+// Brevis width relative to staff space
 #define BREVIS_WIDTH_FACTOR (1.1 * TEMP_MNOTEHEAD_SIZE_FACTOR)
 
 
