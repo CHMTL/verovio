@@ -729,6 +729,7 @@ void View::DrawDot(DeviceContext *dc, LayerElement *element, Layer *layer, Staff
         xOffset = m_doc->GetDrawingUnit(staff->m_drawingStaffSize) * xQtrUnitOffset / 4;
         
         x = dot->m_drawingNote->GetDrawingX() + xOffset;
+LogDebug("DrawDot: GetDrawingX()=%d xOffset=%d x=%d", dot->m_drawingNote->GetDrawingX(), xOffset, x);
         y = dot->m_drawingNote->GetDrawingY();
     }
 

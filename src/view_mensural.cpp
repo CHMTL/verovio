@@ -54,23 +54,26 @@ void View::DrawMensuralNote(DeviceContext *dc, LayerElement *element, Layer *lay
     bool mensural_black = (staff->m_drawingNotationType == NOTATIONTYPE_mensural_black);
 
     int noteY = element->GetDrawingY();
-    int xNote, xStem;
+    int xNote, xStemCtr;
     int drawingDur;
     //int staffY = staff->GetDrawingY();
     wchar_t charCode;
 
-    xStem = element->GetDrawingX();
-
     drawingDur = note->GetDrawingDur();
 
+    // Set the distance from left side of notehead to stem
     int radius = m_doc->GetGlyphWidth(SMUFL_E93C_mensuralNoteheadMinimaWhite, pseudoStaffSize, false) / 2;
-
     if (drawingDur > DUR_1) {
         if (mensural_black) radius *= TEMP_MINIMA_WIDTH_FACTOR;
     }
     else {
         radius += radius / 3;
     }
+
+    xNote = element->GetDrawingX()-radius;
+
+    xStemCtr = element->GetDrawingX();
+LogDebug("\nDrawMensuralNote: xNote=%d xStemCtr=%d", xNote, xStemCtr);
 
     /************** Stem/notehead direction: **************/
 
@@ -86,14 +89,16 @@ void View::DrawMensuralNote(DeviceContext *dc, LayerElement *element, Layer *lay
         stemDir = layerStemDir;
     }
     else {
-        if (drawingDur < DUR_1)
+        if (drawingDur <= DUR_1)
             stemDir = STEMDIRECTION_down;
         else
             stemDir = STEMDIRECTION_up;
     }
-    note->SetDrawingStemDir(stemDir);
-
-    xNote = xStem - radius;
+    
+    // While rare, the semibrevis with a stem exists (e.g., in Karen Desmond's repertory), so
+    // avoid setting <stemDir> for semibrevis (and longer durations); that way we can tell if
+    // a semibrevis was actually encoded with a stem direction and so should have a stem drawn.
+    if (drawingDur < DUR_1) note->SetDrawingStemDir(stemDir);
 
     /************** Noteheads: **************/
 
@@ -102,7 +107,7 @@ void View::DrawMensuralNote(DeviceContext *dc, LayerElement *element, Layer *lay
         DrawLigatureNote(dc, element, layer, staff);
     }
     else if (drawingDur < DUR_1) {
-        DrawMaximaToBrevis(dc, element->GetDrawingX(), noteY, element, layer, staff);
+        DrawMaximaToBrevis(dc, xNote, noteY, element, layer, staff);
     }
     // Semibrevis
     else if (drawingDur == DUR_1) {
@@ -119,6 +124,11 @@ void View::DrawMensuralNote(DeviceContext *dc, LayerElement *element, Layer *lay
 
             DrawSmuflCode(dc, xNote, noteY, charCode, pseudoStaffSize, false);
         }
+        
+        // Rare case (pointed out by Karen Desmond): a semibrevis with a stem
+        if (note->GetStemDir()==STEMDIRECTION_down)
+            DrawMensuralStem(dc, note, staff, stemDir, radius, xStemCtr, noteY);
+            //DrawMensuralStem(dc, note, staff, stemDir, radius, xStemCtr-120, noteY);   // ???TEST!!!!!!!!!
     }
     // Shorter values
     else {
@@ -133,7 +143,7 @@ void View::DrawMensuralNote(DeviceContext *dc, LayerElement *element, Layer *lay
             DrawSmuflCode(dc, xNote, noteY, note->GetMensuralSmuflNoteHead(), pseudoStaffSize, false);
         }
 
-        DrawMensuralStem(dc, note, staff, stemDir, radius, xStem, noteY);
+        DrawMensuralStem(dc, note, staff, stemDir, radius, xStemCtr, noteY);
     }
 
     /************ Draw children (verse / syl) ************/
@@ -260,8 +270,8 @@ void View::DrawMensur(DeviceContext *dc, LayerElement *element, Layer *layer, St
 
 /* This function draws any flags as well as the stem. */
 
-void View::DrawMensuralStem(DeviceContext *dc, LayerElement *object, Staff *staff, data_STEMDIRECTION dir, int radius,
-    int xStemCtr, int originY, int heightY)
+void View::DrawMensuralStem(DeviceContext *dc, LayerElement *object, Staff *staff, data_STEMDIRECTION dir,
+    int radius, int xStemCtr, int originY, int heightY)
 {
     assert(object->GetDurationInterface());
 
@@ -270,7 +280,7 @@ void View::DrawMensuralStem(DeviceContext *dc, LayerElement *object, Staff *staf
     int baseStem, totalFlagStemHeight, flagStemHeight, nbFlags;
     int drawingDur = (object->GetDurationInterface())->GetActualDur();
     bool drawingCueSize = object->GetDrawingCueSize();
-    int verticalCenter = staffY - m_doc->GetDrawingDoubleUnit(staffSize) * 2;
+    int staffYCenter = staffY - m_doc->GetDrawingDoubleUnit(staffSize) * 2;
     bool mensural_black = (staff->m_drawingNotationType == NOTATIONTYPE_mensural_black);
 
     baseStem = m_doc->GetDrawingUnit(staffSize) * STANDARD_STEMLENGTH;
@@ -283,12 +293,10 @@ void View::DrawMensuralStem(DeviceContext *dc, LayerElement *object, Staff *staf
     nbFlags = (mensural_black ? drawingDur - DUR_2 : drawingDur - DUR_4);
     totalFlagStemHeight = flagStemHeight * (nbFlags * 2 - 1) / 2;
 
-    /* SMuFL provides combining stem-and-flag characters with one and two flags, but
-        white notation can require three or even four flags, so we use only the one flag
-        chars.
-
-        In black notation, the semiminima gets one flag; in white notation, it gets none.
-        In both cases, as in CWMN, each shorter duration gets one additional flag. */
+    /* SMuFL provides combining stem-and-flag characters with one and two flags, but white
+       notation can require three or even four flags, so we use only the one flag chars. In
+       black notation, the semiminima gets one flag; in white notation, it gets none. In
+       both cases, as in CWMN, each shorter duration gets one additional flag. */
 
     if (dir == STEMDIRECTION_down) {
         // flip all lengths. Exception: in mensural notation, the stem will never be at
@@ -309,15 +317,15 @@ void View::DrawMensuralStem(DeviceContext *dc, LayerElement *object, Staff *staf
         x -= m_doc->GetDrawingStemWidth(staffSize) / 4;     // empirical adjustment
     }
 
-    if ((dir == STEMDIRECTION_up) && (y2 < verticalCenter)) {
-        y2 = verticalCenter;
+    if ((dir == STEMDIRECTION_up) && (y2 < staffYCenter)) {
+        y2 = staffYCenter;
     }
-    else if ((dir == STEMDIRECTION_down) && (y2 > verticalCenter)) {
-        y2 = verticalCenter;
+    else if ((dir == STEMDIRECTION_down) && (y2 > staffYCenter)) {
+        y2 = staffYCenter;
     }
 
-    // shorten the stem at its connection with the note head
-    // this will not work if the pseudo size is changed
+    // Shorten the stem at its connection with the note head
+    // This will not work if the pseudo size is changed
     int shortening = 0.9 * m_doc->GetDrawingUnit(staffSize);
 
     // LogDebug("DrawMensuralStem: drawingDur=%d mensural_black=%d nbFlags=%d", drawingDur, mensural_black, nbFlags);
