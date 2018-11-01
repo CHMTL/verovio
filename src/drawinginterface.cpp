@@ -9,7 +9,15 @@
 
 //----------------------------------------------------------------------------
 
+#include <assert.h>
+
+//----------------------------------------------------------------------------
+
+#include "chord.h"
+#include "elementpart.h"
 #include "layerelement.h"
+#include "note.h"
+#include "object.h"
 
 namespace vrv {
 
@@ -22,9 +30,7 @@ DrawingListInterface::DrawingListInterface()
     Reset();
 }
 
-DrawingListInterface::~DrawingListInterface()
-{
-}
+DrawingListInterface::~DrawingListInterface() {}
 
 void DrawingListInterface::Reset()
 {
@@ -33,9 +39,16 @@ void DrawingListInterface::Reset()
 
 void DrawingListInterface::AddToDrawingList(Object *object)
 {
+    if (std::find(m_drawingList.begin(), m_drawingList.end(), object) == m_drawingList.end()) {
+        // someName not in name, add it
+        m_drawingList.push_back(object);
+    }
+
+    /*
     m_drawingList.push_back(object);
     m_drawingList.sort();
     m_drawingList.unique();
+     */
 }
 
 ListOfObjects *DrawingListInterface::GetDrawingList()
@@ -57,9 +70,7 @@ StaffDefDrawingInterface::StaffDefDrawingInterface()
     Reset();
 }
 
-StaffDefDrawingInterface::~StaffDefDrawingInterface()
-{
-}
+StaffDefDrawingInterface::~StaffDefDrawingInterface() {}
 
 void StaffDefDrawingInterface::Reset()
 {
@@ -89,7 +100,7 @@ void StaffDefDrawingInterface::SetCurrentKeySig(KeySig *keySig)
 {
     if (keySig) {
         char drawingCancelAccidCount = m_currentKeySig.GetAlterationNumber();
-        data_ACCIDENTAL_EXPLICIT drawingCancelAccidType = m_currentKeySig.GetAlterationType();
+        data_ACCIDENTAL_WRITTEN drawingCancelAccidType = m_currentKeySig.GetAlterationType();
         m_currentKeySig = *keySig;
         m_currentKeySig.m_drawingCancelAccidCount = drawingCancelAccidCount;
         m_currentKeySig.m_drawingCancelAccidType = drawingCancelAccidType;
@@ -119,45 +130,66 @@ StemmedDrawingInterface::StemmedDrawingInterface()
     Reset();
 }
 
-StemmedDrawingInterface::~StemmedDrawingInterface()
-{
-}
+StemmedDrawingInterface::~StemmedDrawingInterface() {}
 
 void StemmedDrawingInterface::Reset()
 {
-    m_drawingStemDir = STEMDIRECTION_NONE;
-    m_drawingStemStart = Point(0, 0);
-    m_drawingStemEnd = Point(0, 0);
+    m_drawingStem = NULL;
+}
+
+void StemmedDrawingInterface::SetDrawingStem(Stem *stem)
+{
+    m_drawingStem = stem;
 }
 
 void StemmedDrawingInterface::SetDrawingStemDir(data_STEMDIRECTION stemDir)
 {
-    m_drawingStemDir = stemDir;
+    if (m_drawingStem) m_drawingStem->SetDrawingStemDir(stemDir);
 }
 
 data_STEMDIRECTION StemmedDrawingInterface::GetDrawingStemDir()
 {
-    return m_drawingStemDir;
+    if (m_drawingStem) return m_drawingStem->GetDrawingStemDir();
+    return STEMDIRECTION_NONE;
 }
 
-void StemmedDrawingInterface::SetDrawingStemStart(Point stemStart)
+void StemmedDrawingInterface::SetDrawingStemLen(int stemLen)
 {
-    m_drawingStemStart = stemStart;
+    if (m_drawingStem) m_drawingStem->SetDrawingStemLen(stemLen);
 }
 
-Point StemmedDrawingInterface::GetDrawingStemStart()
+int StemmedDrawingInterface::GetDrawingStemLen()
 {
-    return m_drawingStemStart;
+    if (m_drawingStem) return m_drawingStem->GetDrawingStemLen();
+    return 0;
 }
 
-void StemmedDrawingInterface::SetDrawingStemEnd(Point stemEnd)
+Point StemmedDrawingInterface::GetDrawingStemStart(Object *object)
 {
-    m_drawingStemEnd = stemEnd;
+    assert(m_drawingStem || object);
+    if (object && !m_drawingStem) {
+        assert(this == dynamic_cast<StemmedDrawingInterface *>(object));
+        return Point(object->GetDrawingX(), object->GetDrawingY());
+    }
+    return Point(m_drawingStem->GetDrawingX(), m_drawingStem->GetDrawingY());
 }
 
-Point StemmedDrawingInterface::GetDrawingStemEnd()
+Point StemmedDrawingInterface::GetDrawingStemEnd(Object *object)
 {
-    return m_drawingStemEnd;
+    assert(m_drawingStem || object);
+    if (object && !m_drawingStem) {
+        assert(this == dynamic_cast<StemmedDrawingInterface *>(object));
+        if (!m_drawingStem) {
+            // Somehow arbitrary for chord - stem end it the bottom with no stem
+            if (object->Is(CHORD)) {
+                Chord *chord = dynamic_cast<Chord *>(object);
+                assert(chord);
+                return Point(object->GetDrawingX(), chord->GetYBottom());
+            }
+            return Point(object->GetDrawingX(), object->GetDrawingY());
+        }
+    }
+    return Point(m_drawingStem->GetDrawingX(), m_drawingStem->GetDrawingY() - GetDrawingStemLen());
 }
 
 } // namespace vrv

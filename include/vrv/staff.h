@@ -15,6 +15,7 @@ namespace vrv {
 
 class DeviceContext;
 class Layer;
+class LedgerLine;
 class StaffAlignment;
 class StaffDef;
 class Syl;
@@ -29,8 +30,8 @@ class TimeSpanningInterface;
  * A Staff is contained in a System.
  * It contains Measure objects.
  * For unmeasured music, one single Measure is added for simplifying internal processing
-*/
-class Staff : public Object, public AttCommon {
+ */
+class Staff : public Object, public AttNInteger, public AttTyped, public AttVisibility {
 
 public:
     /**
@@ -38,12 +39,27 @@ public:
      * Reset method resets all attribute classes
      */
     ///@{
-    Staff(int n = -1);
+    Staff(int n = 1);
     virtual ~Staff();
     virtual void Reset();
     virtual std::string GetClassName() const { return "Staff"; }
-    virtual ClassId Is() const { return STAFF; }
+    virtual ClassId GetClassId() const { return STAFF; }
     ///@}
+
+    /**
+     * Do not copy children for layers
+     */
+    virtual bool CopyChildren() const { return false; }
+
+    /**
+     * Overriding CopyReset() method to be called after copy / assignment calls.
+     */
+    virtual void CopyReset();
+
+    /**
+     * Delete all the legder line arrays.
+     */
+    void ClearLedgerLines();
 
     /**
      * @name Methods for adding allowed content
@@ -52,7 +68,17 @@ public:
     virtual void AddChild(Object *object);
     ///@}
 
-    int GetLayerCount() const { return (int)m_children.size(); }
+    /**
+     * @name Get the Y drawing position
+     */
+    ///@{
+    virtual int GetDrawingY() const;
+
+    /**
+     * Check if the staff is currently visible.
+     * Looks for the parent system and its current drawing scoreDef
+     */
+    bool DrawingIsVisible();
 
     /**
      * Return the index position of the staff in its measure parent
@@ -60,17 +86,42 @@ public:
     int GetStaffIdx() const { return Object::GetIdx(); }
 
     /**
-     * Return the default horizontal spacing of staves.
+     * Calculate the yRel for the staff given a @loc value
      */
-    int GetVerticalSpacing();
+    int CalcPitchPosYRel(Doc *doc, int loc);
 
+    /**
+     * Getter for the StaffAlignment
+     */
     StaffAlignment *GetAlignment() const { return m_staffAlignment; }
 
-    int GetYRel() const;
+    /**
+     * Return the ledger line arrays (NULL if none)
+     */
+    ///@{
+    ArrayOfLedgerLines *GetLedgerLinesAbove() { return m_ledgerLinesAbove; }
+    ArrayOfLedgerLines *GetLedgerLinesAboveCue() { return m_ledgerLinesAboveCue; }
+    ArrayOfLedgerLines *GetLedgerLinesBelow() { return m_ledgerLinesBelow; }
+    ArrayOfLedgerLines *GetLedgerLinesBelowCue() { return m_ledgerLinesBelowCue; }
+    ///@}
+
+    /**
+     * Add the ledger lines above or below.
+     * If necessary creates the ledger line array.
+     */
+    ///@{
+    void AddLegerLineAbove(int count, int left, int right, bool cueSize);
+    void AddLegerLineBelow(int count, int left, int right, bool cueSize);
+    ///@}
 
     //----------//
     // Functors //
     //----------//
+
+    /**
+     * See Object::ConvertToCastOffMensural
+     */
+    virtual int ConvertToCastOffMensural(FunctorParams *params);
 
     /**
      * See Object::UnsetCurrentScoreDef
@@ -78,9 +129,24 @@ public:
     virtual int UnsetCurrentScoreDef(FunctorParams *functorParams);
 
     /**
+     * See Object::OptimizeScoreDef
+     */
+    virtual int OptimizeScoreDef(FunctorParams *functorParams);
+
+    /**
      * See Object::ResetVerticalAlignment
      */
     virtual int ResetVerticalAlignment(FunctorParams *functorParams);
+
+    /**
+     * See Object::ApplyPPUFactor
+     */
+    virtual int ApplyPPUFactor(FunctorParams *functorParams);
+
+    /**
+     * See Object::AlignHorizontally
+     */
+    virtual int AlignHorizontally(FunctorParams *functorParams);
 
     /**
      * See Object::AlignVertically
@@ -98,14 +164,22 @@ public:
     virtual int ResetDrawing(FunctorParams *functorParams);
 
     /**
-     * See Object::SetDrawingXY
-     */
-    virtual int SetDrawingXY(FunctorParams *functorParams);
-
-    /**
      * See Object::PrepareRpt
      */
     virtual int PrepareRpt(FunctorParams *functorParams);
+
+    /**
+     * See Object::CalcOnsetOffset
+     */
+    ///@{
+    virtual int CalcOnsetOffset(FunctorParams *functorParams);
+    ///@}
+
+private:
+    /**
+     * Add the ledger line dashes to the legderline array.
+     */
+    void AddLegerLines(ArrayOfLedgerLines *lines, int count, int left, int right);
 
 public:
     /**
@@ -119,15 +193,13 @@ public:
     int m_drawingNotationType;
 
     /**
-     * Total drawing height from top of the top line to bottom of the bottom line
-     */
-    int m_drawingHeight;
-
-    /**
      * The drawing staff size (scale), from the staffDef
      */
     int m_drawingStaffSize;
 
+    /**
+     * A vector of all the spanning elements overlapping with the previous measure
+     */
     std::vector<Object *> m_timeSpanningElements;
 
     /**
@@ -143,6 +215,59 @@ private:
      * A pointer to a StaffAlignment for aligning the staves
      */
     StaffAlignment *m_staffAlignment;
+
+    /**
+     * A pointer to the legder lines (above / below and normal / cue)
+     */
+    ///@{
+    ArrayOfLedgerLines *m_ledgerLinesAbove;
+    ArrayOfLedgerLines *m_ledgerLinesBelow;
+    ArrayOfLedgerLines *m_ledgerLinesAboveCue;
+    ArrayOfLedgerLines *m_ledgerLinesBelowCue;
+    ///@}
+};
+
+//----------------------------------------------------------------------------
+// LedgerLine
+//----------------------------------------------------------------------------
+
+/**
+ * This is a class with no MEI equivalent for representing legder lines.
+ * A ledger line is represented by a list of dashes.
+ * Each dash is represented by a pair of points (left - right).
+ */
+class LedgerLine {
+public:
+    /**
+     * @name Constructors, destructors, reset methods
+     * Reset method reset all attribute classes
+     */
+    ///@{
+    LedgerLine();
+    virtual ~LedgerLine();
+    virtual void Reset();
+    ///@}
+
+    /**
+     * Add a dash to the ledger line object.
+     * If necessary merges overlapping dashes.
+     */
+    void AddDash(int left, int right);
+
+protected:
+    //
+private:
+    //
+public:
+    /**
+     * A list of dashes relative to the staff position.
+     */
+    std::list<std::pair<int, int> > m_dashes;
+
+protected:
+    //
+private:
+    //
 };
 
 } // namespace vrv

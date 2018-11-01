@@ -20,6 +20,10 @@ class Clef;
 class KeySig;
 class Mensur;
 class MeterSig;
+class PgFoot;
+class PgFoot2;
+class PgHead;
+class PgHead2;
 class StaffGrp;
 class StaffDef;
 
@@ -35,7 +39,7 @@ class StaffDef;
  * information about clef, key signature, etc. This information can be either
  * attributes (implemented) of the ScoreDefInterface or elements (not implemented).
  */
-class ScoreDefElement : public Object, public ScoreDefInterface {
+class ScoreDefElement : public Object, public ScoreDefInterface, public AttTyped {
 public:
     /**
      * @name Constructors, destructors, and other standard methods.
@@ -44,10 +48,15 @@ public:
     ScoreDefElement(std::string classid);
     virtual ~ScoreDefElement();
     virtual void Reset();
-    virtual ClassId Is() const { return SCOREDEF_ELEMENT; }
+    virtual ClassId GetClassId() const { return SCOREDEF_ELEMENT; }
     ///@}
 
+    /**
+     * @name Getter to interfaces
+     */
+    ///@{
     virtual ScoreDefInterface *GetScoreDefInterface() { return dynamic_cast<ScoreDefInterface *>(this); }
+    ///@}
 
     /**
      * @name Methods for checking the presence of clef, key signature, etc. information.
@@ -105,8 +114,8 @@ private:
 /**
  * This class represents a MEI scoreDef.
  * It contains StaffGrp objects.
-*/
-class ScoreDef : public ScoreDefElement, public ObjectListInterface, public AttEndings {
+ */
+class ScoreDef : public ScoreDefElement, public ObjectListInterface, public AttEndings, public AttOptimization {
 public:
     /**
      * @name Constructors, destructors, and other standard methods
@@ -117,7 +126,7 @@ public:
     virtual ~ScoreDef();
     virtual void Reset();
     virtual std::string GetClassName() const { return "ScoreDef"; }
-    virtual ClassId Is() const { return SCOREDEF; }
+    virtual ClassId GetClassId() const { return SCOREDEF; }
     ///@}
 
     virtual void AddChild(Object *object);
@@ -138,6 +147,11 @@ public:
      * Get the staffDef with number n (NULL if not found).
      */
     StaffDef *GetStaffDef(int n);
+
+    /**
+     * Return all the @n values of the staffDef in a scoreDef
+     */
+    std::vector<int> GetStaffNs();
 
     /**
      * Set the redraw flag to all staffDefs.
@@ -162,6 +176,16 @@ public:
     void SetDrawingWidth(int drawingWidth);
     ///@}
 
+    /**
+     * @name Getters for running elements
+     */
+    ///@{
+    PgFoot *GetPgFoot();
+    PgFoot2 *GetPgFoot2();
+    PgHead *GetPgHead();
+    PgHead2 *GetPgHead2();
+    ///@}
+
     //----------//
     // Functors //
     //----------//
@@ -184,8 +208,7 @@ public:
 
 protected:
     /**
-     * Filter the list for a specific class.
-     * For example, keep staffGrp for fast access.
+     * Filter the flat list and keep only StaffGrp elements.
      */
     virtual void FilterList(ListOfObjects *childList);
 
@@ -199,111 +222,6 @@ private:
     bool m_drawLabels;
     /** Store the drawing width (clef and key sig) of the scoreDef */
     int m_drawingWidth;
-};
-
-//----------------------------------------------------------------------------
-// StaffGrp
-//----------------------------------------------------------------------------
-
-/**
- * This class represents a MEI staffGrp.
- * It contains StaffDef objects.
- */
-class StaffGrp : public Object,
-                 public ObjectListInterface,
-                 public AttCommon,
-                 public AttCommonPart,
-                 public AttLabelsAddl,
-                 public AttStaffgroupingsym,
-                 public AttStaffGrpVis {
-public:
-    /**
-     * @name Constructors, destructors, and other standard methods
-     * Reset method resets all attribute classes
-     */
-    ///@{
-    StaffGrp();
-    virtual ~StaffGrp();
-    virtual Object *Clone() const { return new StaffGrp(*this); }
-    virtual void Reset();
-    virtual std::string GetClassName() const { return "StaffGrp"; }
-    virtual ClassId Is() const { return STAFFGRP; }
-    ///@}
-
-    /**
-     * @name Methods for adding allowed content
-     */
-    ///@{
-    virtual void AddChild(Object *object);
-    ///@}
-
-    //----------//
-    // Functors //
-    //----------//
-
-protected:
-    /**
-     * Filter the list for a specific class.
-     * For example, keep staffDef for fast access.
-     */
-    virtual void FilterList(ListOfObjects *childList);
-
-private:
-    //
-public:
-    //
-private:
-};
-
-//----------------------------------------------------------------------------
-// StaffDef
-//----------------------------------------------------------------------------
-
-/**
- * This class represents a MEI staffDef.
- */
-class StaffDef : public ScoreDefElement,
-                 public StaffDefDrawingInterface,
-                 public AttCommon,
-                 public AttCommonPart,
-                 public AttLabelsAddl,
-                 public AttNotationtype,
-                 public AttScalable,
-                 public AttStaffDefVis,
-                 public AttTransposition {
-public:
-    /**
-     * @name Constructors, destructors, and other standard methods
-     * Reset method resets all attribute classes
-     */
-    ///@{
-    StaffDef();
-    virtual ~StaffDef();
-    virtual Object *Clone() const { return new StaffDef(*this); }
-    virtual void Reset();
-    virtual std::string GetClassName() const { return "StaffDef"; }
-    virtual ClassId Is() const { return STAFFDEF; }
-    ///@}
-
-    //----------//
-    // Functors //
-    //----------//
-
-    /**
-     * See Object::ReplaceDrawingValuesInStaffDef
-     */
-    virtual int ReplaceDrawingValuesInStaffDef(FunctorParams *functorParams);
-
-    /**
-     * See Object::SetStaffDefRedrawFlags
-     */
-    virtual int SetStaffDefRedrawFlags(FunctorParams *functorParams);
-
-private:
-    //
-public:
-    //
-private:
 };
 
 } // namespace vrv

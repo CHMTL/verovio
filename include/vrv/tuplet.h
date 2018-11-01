@@ -10,6 +10,7 @@
 
 #include "atts_cmn.h"
 #include "atts_shared.h"
+#include "atts_visual.h"
 #include "layerelement.h"
 
 namespace vrv {
@@ -22,8 +23,9 @@ class Note;
 
 class Tuplet : public LayerElement,
                public ObjectListInterface,
+               public AttColor,
                public AttDurationRatio,
-               public AttNumberplacement,
+               public AttNumberPlacement,
                public AttTupletVis {
 public:
     /**
@@ -35,10 +37,8 @@ public:
     virtual ~Tuplet();
     virtual void Reset();
     virtual std::string GetClassName() const { return "Tuplet"; }
-    virtual ClassId Is() const { return TUPLET; }
+    virtual ClassId GetClassId() const { return TUPLET; }
     ///@}
-
-    int GetNoteCount() const { return this->GetChildCount(NOTE); }
 
     /**
      * Add an element (a note or a rest) to a tuplet.
@@ -46,10 +46,18 @@ public:
      */
     virtual void AddChild(Object *object);
 
+    //----------//
+    // Functors //
+    //----------//
+
+    /**
+     * See Object::ResetDrawing
+     */
+    virtual int ResetDrawing(FunctorParams *functorParams);
+
 protected:
     /**
-     * Filter the list for a specific class.
-     * For example, keep only notes in Beam
+     * Filter the flat list and keep only Note elements.
      */
     virtual void FilterList(ListOfObjects *childList);
 

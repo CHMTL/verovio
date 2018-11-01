@@ -17,10 +17,19 @@ namespace vrv {
 class TextElement;
 
 //----------------------------------------------------------------------------
-// Dir
+// Dir (directive)
 //----------------------------------------------------------------------------
 
-class Dir : public ControlElement, public TextListInterface, public TextDirInterface, public TimeSpanningInterface {
+/**
+ * This class models the MEI <dir> element.
+ */
+class Dir : public ControlElement,
+            public TextListInterface,
+            public TextDirInterface,
+            public TimeSpanningInterface,
+            public AttLang,
+            public AttExtender,
+            public AttVerticalGroup {
 public:
     /**
      * @name Constructors, destructors, and other standard methods
@@ -31,22 +40,32 @@ public:
     virtual ~Dir();
     virtual void Reset();
     virtual std::string GetClassName() const { return "Dir"; }
-    virtual ClassId Is() const { return DIR; }
+    virtual ClassId GetClassId() const { return DIR; }
     ///@}
 
+    /**
+     * @name Getter to interfaces
+     */
+    ///@{
     virtual TextDirInterface *GetTextDirInterface() { return dynamic_cast<TextDirInterface *>(this); }
     virtual TimePointInterface *GetTimePointInterface() { return dynamic_cast<TimePointInterface *>(this); }
     virtual TimeSpanningInterface *GetTimeSpanningInterface() { return dynamic_cast<TimeSpanningInterface *>(this); }
+    ///@}
 
     /**
-    * Add an element (text, rend. etc.) to a dynam.
-    * Only supported elements will be actually added to the child list.
-    */
+     * Add an element (text, rend. etc.) to a dynam.
+     * Only supported elements will be actually added to the child list.
+     */
     virtual void AddChild(Object *object);
 
     //----------//
     // Functors //
     //----------//
+
+    /**
+     * See Object::PrepareFloatingGrps
+     */
+    virtual int PrepareFloatingGrps(FunctorParams *);
 
 protected:
     //

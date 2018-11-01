@@ -8,6 +8,7 @@
 #ifndef __VRV_BEAM_H__
 #define __VRV_BEAM_H__
 
+#include "atts_cmn.h"
 #include "drawinginterface.h"
 #include "layerelement.h"
 
@@ -19,10 +20,52 @@ namespace vrv {
 enum { PARTIAL_NONE = 0, PARTIAL_THROUGH, PARTIAL_RIGHT, PARTIAL_LEFT };
 
 //----------------------------------------------------------------------------
+// BeamDrawingParams
+//----------------------------------------------------------------------------
+
+/**
+ * Class for storing drawing parameters when calculating beams.
+ * See View::DrawBeam and View::CalcBeam
+ * This could be turned into a BeamDrawingInterface
+ */
+
+class BeamDrawingParams {
+public:
+    /**
+     * @name Constructors, destructors, and other standard methods
+     */
+    ///@{
+    BeamDrawingParams();
+    virtual ~BeamDrawingParams() {}
+
+    void Reset();
+
+    void CalcBeam(
+        Layer *layer, Staff *staff, Doc *doc, const ArrayOfBeamElementCoords *beamElementCoords, int elementCount);
+
+    // values to be set before calling CalcBeam
+    bool m_changingDur;
+    bool m_beamHasChord;
+    bool m_hasMultipleStemDir;
+    bool m_cueSize;
+    bool m_crossStaff;
+    int m_shortestDur;
+    data_STEMDIRECTION m_stemDir;
+
+    // values set by CalcBeam
+    int m_beamWidth;
+    int m_beamWidthBlack;
+    int m_beamWidthWhite;
+    int m_startingX; // the initial X position of the beam
+    int m_startingY; // the initial Y position of the beam
+    double m_beamSlope; // the slope of the beam
+};
+
+//----------------------------------------------------------------------------
 // Beam
 //----------------------------------------------------------------------------
 
-class Beam : public LayerElement, public ObjectListInterface, public DrawingListInterface {
+class Beam : public LayerElement, public ObjectListInterface, public DrawingListInterface, public AttColor, public AttBeamedWith {
 public:
     /**
      * @name Constructors, destructors, and other standard methods
@@ -33,7 +76,7 @@ public:
     virtual ~Beam();
     virtual void Reset();
     virtual std::string GetClassName() const { return "Beam"; }
-    virtual ClassId Is() const { return BEAM; }
+    virtual ClassId GetClassId() const { return BEAM; }
     ///@}
 
     int GetNoteCount() const { return this->GetChildCount(NOTE); }
@@ -58,10 +101,23 @@ public:
      */
     const ArrayOfBeamElementCoords *GetElementCoords() const { return &m_beamElementCoords; }
 
+    //----------//
+    // Functors //
+    //----------//
+
+    /**
+     * See Object::CalcStem
+     */
+    virtual int CalcStem(FunctorParams *functorParams);
+
+    /**
+     * See Object::ResetDrawing
+     */
+    virtual int ResetDrawing(FunctorParams *functorParams);
+
 protected:
     /**
-     * Filter the list for a specific class.
-     * For example, keep only notes in Beam
+     * Filter the flat list and keep only Note and Chords elements.
      * This also initializes the m_beamElementCoords vector
      */
     virtual void FilterList(ListOfObjects *childList);
@@ -85,7 +141,9 @@ protected:
 private:
     //
 public:
-    //
+    /** */
+    BeamDrawingParams m_drawingParams;
+
 private:
     /**
      * An array of coordinates for each element
@@ -115,41 +173,6 @@ public:
     int m_breaksec;
     char m_partialFlags[MAX_DURATION_PARTIALS];
     LayerElement *m_element;
-};
-
-//----------------------------------------------------------------------------
-// BeamParams
-//----------------------------------------------------------------------------
-
-/**
- * Class for storing drawing parameters when calculating beams.
- * See View::DrawBeam and View::CalcBeam
- */
-
-class BeamParams {
-public:
-    /**
-     * @name Constructors, destructors, and other standard methods
-     */
-    ///@{
-    BeamParams(){};
-    virtual ~BeamParams(){};
-
-    // values to be set before calling CalcBeam
-    bool m_changingDur;
-    bool m_beamHasChord;
-    bool m_hasMultipleStemDir;
-    bool m_cueSize;
-    int m_shortestDur;
-    data_STEMDIRECTION m_stemDir;
-
-    // values set by CalcBeam
-    int m_beamWidth;
-    int m_beamWidthBlack;
-    int m_beamWidthWhite;
-    double m_startingY; // the initial position of the beam
-    double m_beamSlope; // the slope of the beam
-    double m_verticalBoost; // extra height to ensure the beam clears all the noteheads
 };
 
 } // namespace vrv

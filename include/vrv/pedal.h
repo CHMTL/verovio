@@ -18,11 +18,15 @@ namespace vrv {
 // Pedal
 //----------------------------------------------------------------------------
 
+/**
+ * This class models the MEI <pedal> element.
+ */
 class Pedal : public ControlElement,
               public TimePointInterface,
               public AttColor,
               public AttPedalLog,
-              public AttPlacement {
+              public AttPlacement,
+              public AttVerticalGroup {
 public:
     /**
      * @name Constructors, destructors, and other standard methods
@@ -33,14 +37,29 @@ public:
     virtual ~Pedal();
     virtual void Reset();
     virtual std::string GetClassName() const { return "Pedal"; }
-    virtual ClassId Is() const { return PEDAL; }
+    virtual ClassId GetClassId() const { return PEDAL; }
     ///@}
 
+    /**
+     * @name Getter to interfaces
+     */
+    ///@{
     virtual TimePointInterface *GetTimePointInterface() { return dynamic_cast<TimePointInterface *>(this); }
+    ////@}
 
     //----------//
     // Functors //
     //----------//
+
+    /**
+     * See Object::PrepareFloatingGrps
+     */
+    virtual int PrepareFloatingGrps(FunctorParams *);
+
+    /**
+     * See Object::GenerateMIDI
+     */
+    virtual int GenerateMIDI(FunctorParams *functorParams);
 
 protected:
     //

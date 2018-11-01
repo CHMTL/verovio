@@ -24,16 +24,14 @@ namespace vrv {
 // BoundaryEnd
 //----------------------------------------------------------------------------
 
-BoundaryEnd::BoundaryEnd(Object *start) : SystemElement("bdend")
+BoundaryEnd::BoundaryEnd(Object *start) : SystemElement("bdend-")
 {
     Reset();
     m_start = start;
     m_startClassName = start->GetClassName();
 }
 
-BoundaryEnd::~BoundaryEnd()
-{
-}
+BoundaryEnd::~BoundaryEnd() {}
 
 void BoundaryEnd::Reset()
 {
@@ -50,9 +48,7 @@ BoundaryStartInterface::BoundaryStartInterface()
     Reset();
 }
 
-BoundaryStartInterface::~BoundaryStartInterface()
-{
-}
+BoundaryStartInterface::~BoundaryStartInterface() {}
 
 void BoundaryStartInterface::Reset()
 {
@@ -96,7 +92,7 @@ int BoundaryEnd::PrepareBoundaries(FunctorParams *functorParams)
 
     // Endings are also set as Measure::m_drawingEnding for all meaasures in between - when we reach the end boundary of
     // an ending, we need to set the m_currentEnding to NULL
-    if (params->m_currentEnding && this->GetStart()->Is() == ENDING) {
+    if (params->m_currentEnding && this->GetStart()->Is(ENDING)) {
         params->m_currentEnding = NULL;
         // With ending we need the drawing measure - this will crash with en empty ending at the beginning of a score...
         assert(m_drawingMeasure);
@@ -112,7 +108,7 @@ int BoundaryEnd::ResetDrawing(FunctorParams *functorParams)
     this->SetMeasure(NULL);
 
     return FUNCTOR_CONTINUE;
-};
+}
 
 int BoundaryEnd::CastOffSystems(FunctorParams *functorParams)
 {
@@ -120,7 +116,7 @@ int BoundaryEnd::CastOffSystems(FunctorParams *functorParams)
     assert(params);
 
     // Since the functor returns FUNCTOR_SIBLINGS we should never go lower than the system children
-    assert(dynamic_cast<System *>(this->m_parent));
+    assert(dynamic_cast<System *>(this->GetParent()));
 
     // Special case where we use the Relinquish method.
     // We want to move the measure to the currentSystem. However, we cannot use DetachChild
@@ -137,16 +133,6 @@ int BoundaryEnd::CastOffSystems(FunctorParams *functorParams)
     return FUNCTOR_SIBLINGS;
 }
 
-int BoundaryEnd::CastOffEncoding(FunctorParams *functorParams)
-{
-    CastOffEncodingParams *params = dynamic_cast<CastOffEncodingParams *>(functorParams);
-    assert(params);
-
-    MoveItselfTo(params->m_currentSystem);
-
-    return FUNCTOR_SIBLINGS;
-}
-
 int BoundaryEnd::PrepareFloatingGrps(FunctorParams *functorParams)
 {
     PrepareFloatingGrpsParams *params = dynamic_cast<PrepareFloatingGrpsParams *>(functorParams);
@@ -156,9 +142,13 @@ int BoundaryEnd::PrepareFloatingGrps(FunctorParams *functorParams)
 
     // We are reaching the end of an ending - put it to the param and it will be grouped with the next one if there is
     // not measure in between
-    if (this->GetStart()->Is() == ENDING) {
+    if (this->GetStart()->Is(ENDING)) {
         params->m_previousEnding = dynamic_cast<Ending *>(this->GetStart());
         assert(params->m_previousEnding);
+        // This is the end of the first ending - generate a grpId
+        if (params->m_previousEnding->GetDrawingGrpId() == 0) {
+            params->m_previousEnding->SetDrawingGrpObject(params->m_previousEnding);
+        }
     }
 
     return FUNCTOR_CONTINUE;
@@ -186,6 +176,6 @@ int BoundaryStartInterface::InterfaceResetDrawing(FunctorParams *functorParams)
     m_drawingMeasure = NULL;
 
     return FUNCTOR_CONTINUE;
-};
+}
 
 } // namespace vrv

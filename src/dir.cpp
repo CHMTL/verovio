@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// Name:        dir.h
+// Name:        dir.cpp
 // Author:      Laurent Pugin
 // Created:     2016
 // Copyright (c) Authors and others. All rights reserved.
@@ -13,9 +13,10 @@
 
 //----------------------------------------------------------------------------
 
-#include "aligner.h"
 #include "editorial.h"
+#include "functorparams.h"
 #include "text.h"
+#include "verticalaligner.h"
 #include "vrv.h"
 
 namespace vrv {
@@ -24,28 +25,38 @@ namespace vrv {
 // Dir
 //----------------------------------------------------------------------------
 
-Dir::Dir() : ControlElement("dir-"), TextListInterface(), TextDirInterface(), TimeSpanningInterface()
+Dir::Dir()
+    : ControlElement("dir-")
+    , TextListInterface()
+    , TextDirInterface()
+    , TimeSpanningInterface()
+    , AttLang()
+    , AttVerticalGroup()
 {
     RegisterInterface(TextDirInterface::GetAttClasses(), TextDirInterface::IsInterface());
     RegisterInterface(TimeSpanningInterface::GetAttClasses(), TimeSpanningInterface::IsInterface());
+    RegisterAttClass(ATT_LANG);
+    RegisterAttClass(ATT_EXTENDER);
+    RegisterAttClass(ATT_VERTICALGROUP);
 
     Reset();
 }
 
-Dir::~Dir()
-{
-}
+Dir::~Dir() {}
 
 void Dir::Reset()
 {
     ControlElement::Reset();
     TextDirInterface::Reset();
     TimeSpanningInterface::Reset();
+    ResetLang();
+    ResetExtender();
+    ResetVerticalGroup();
 }
 
 void Dir::AddChild(Object *child)
 {
-    if (child->IsTextElement()) {
+    if (child->Is({ REND, TEXT })) {
         assert(dynamic_cast<TextElement *>(child));
     }
     else if (child->IsEditorialElement()) {
@@ -64,5 +75,14 @@ void Dir::AddChild(Object *child)
 //----------------------------------------------------------------------------
 // Dir functor methods
 //----------------------------------------------------------------------------
+
+int Dir::PrepareFloatingGrps(FunctorParams *)
+{
+    if (this->HasVgrp()) {
+        this->SetDrawingGrpId(-this->GetVgrp());
+    }
+
+    return FUNCTOR_CONTINUE;
+}
 
 } // namespace vrv

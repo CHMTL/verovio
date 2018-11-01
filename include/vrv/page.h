@@ -14,6 +14,8 @@
 namespace vrv {
 
 class DeviceContext;
+class PrepareProcessingListsParams;
+class RunningElement;
 class Staff;
 class System;
 
@@ -25,7 +27,7 @@ class System;
  * This class represents a page in a laid-out score (Doc).
  * A Page is contained in a Doc.
  * It contains System objects.
-*/
+ */
 class Page : public Object {
 public:
     /**
@@ -37,7 +39,7 @@ public:
     virtual ~Page();
     virtual void Reset();
     virtual std::string GetClassName() const { return "Page"; }
-    virtual ClassId Is() const { return PAGE; }
+    virtual ClassId GetClassId() const { return PAGE; }
     ///@}
 
     /**
@@ -47,7 +49,27 @@ public:
     virtual void AddChild(Object *object);
     ///@}
 
+    /**
+     * Return the number of system (children are System object only)
+     */
     int GetSystemCount() const { return (int)m_children.size(); }
+
+    /**
+     * @name Get and set the pixel per unit factor.
+     */
+    ///@{
+    double GetPPUFactor() const { return m_PPUFactor; }
+    void SetPPUFactor(double PPUFactor) { m_PPUFactor = PPUFactor; }
+    ///@}
+
+    /**
+     * @name Getter header and footer.
+     * Looks if the page is the first one or not
+     */
+    ///@{
+    RunningElement *GetHeader() const;
+    RunningElement *GetFooter() const;
+    ///@}
 
     /**
      * Return the index position of the page in its document parent
@@ -65,6 +87,12 @@ public:
      * This will be done only if m_layoutDone is false or force is true.
      */
     void LayOut(bool force = false);
+
+    /**
+     * Do the layout for a transcription page (with layout information).
+     * This only calculates positioning or layer element parts using provided layout of parents.
+     */
+    void LayOutTranscription(bool force = false);
 
     /**
      * Lay out the content of the page (measures and their content) horizontally
@@ -87,6 +115,11 @@ public:
     void JustifyVertically();
 
     /**
+     * Lay out the pitch positions and stems (without redoing the entire layout)
+     */
+    void LayOutPitchPos();
+
+    /**
      * Return the height of the content by looking at the last system of the page.
      * This is used for adjusting the page height when this is the expected behaviour,
      * typically with the --adjust-page-height option in the commandline tool
@@ -105,19 +138,48 @@ public:
     // Functors //
     //----------//
 
+    /**
+     * Apply the Pixel Per Unit factor of the page to its elements.
+     */
+    virtual int ApplyPPUFactor(FunctorParams *functorParams);
+
+    /**
+     * See Object::ResetVerticalAlignment
+     */
+    virtual int ResetVerticalAlignment(FunctorParams *functorParams);
+
+    /**
+     * See Object::AlignVertically
+     */
+    ///@{
+    virtual int AlignVerticallyEnd(FunctorParams *functorParams);
+    ///@}
+
+    /**
+     * See Object::AlignSystems
+     */
+    virtual int AlignSystems(FunctorParams *functorParams);
+
 private:
+    /**
+     * Adjust the horizontal postition of the syl processing verse by verse
+     */
+    void AdjustSylSpacingByVerse(PrepareProcessingListsParams &listsParams, Doc *doc);
+
     //
 public:
     /** Page width (MEI scoredef@page.width). Saved if != -1 */
     int m_pageWidth;
     /** Page height (MEI scoredef@page.height). Saved if != -1 */
     int m_pageHeight;
+    /** Page bottom margin (MEI scoredef@page.botmar). Saved if != 0 */
+    int m_pageMarginBottom;
     /** Page left margin (MEI scoredef@page.leftmar). Saved if != 0 */
-    short m_pageLeftMar;
+    int m_pageMarginLeft;
     /** Page right margin (MEI scoredef@page.rightmar). Saved if != 0 */
-    short m_pageRightMar;
+    int m_pageMarginRight;
     /** Page top margin (MEI scoredef@page.topmar). Saved if != 0 */
-    short m_pageTopMar;
+    int m_pageMarginTop;
     /**
      * Surface (MEI @surface). Saved as facsimile for transciption layout.
      * For now, the target of the <graphic> element within surface is loaded here.
@@ -131,6 +193,11 @@ public:
      * The value is initialized by the Object::SetCurrentScoreDef functor.
      */
     ScoreDef m_drawingScoreDef;
+
+    /**
+     * Temporary member that will be replace by its LibMEI equivalent in the next version of the page-based MEI
+     */
+    double m_PPUFactor;
 
 private:
     /**

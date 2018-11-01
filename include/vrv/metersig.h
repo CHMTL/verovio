@@ -9,6 +9,7 @@
 #define __VRV_METERSIG_H__
 
 #include "atts_shared.h"
+#include "atts_visual.h"
 #include "layerelement.h"
 
 namespace vrv {
@@ -22,7 +23,7 @@ class ScoreDefInterface;
 /**
  * This class models the MEI <meterSig> element.
  */
-class MeterSig : public LayerElement, public AttMeterSigLog {
+class MeterSig : public LayerElement, public AttMeterSigLog, public AttMeterSigVis {
 public:
     /**
      * @name Constructors, destructors, and other standard methods
@@ -35,12 +36,24 @@ public:
     virtual ~MeterSig();
     virtual void Reset();
     virtual std::string GetClassName() const { return "MeterSig"; }
-    virtual ClassId Is() const { return METERSIG; }
+    virtual ClassId GetClassId() const { return METERSIG; }
     virtual Object *Clone() const { return new MeterSig(*this); }
     ///@}
 
     /** Override the method since alignment is required */
     virtual bool HasToBeAligned() const { return true; }
+
+    /** Convert rendition to form */
+    meterSigVis_FORM meterSigDefaultVisToMeterSigVis(meterSigDefaultVis_METERFORM form);
+
+    //----------//
+    // Functors //
+    //----------//
+
+    /**
+     * See Object::FindSpaceInReferenceAlignments
+     */
+    virtual int FindSpaceInReferenceAlignments(FunctorParams *functorParams);
 
 private:
     //

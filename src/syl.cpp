@@ -13,6 +13,7 @@
 
 //----------------------------------------------------------------------------
 
+#include "doc.h"
 #include "editorial.h"
 #include "functorparams.h"
 #include "note.h"
@@ -27,23 +28,23 @@ namespace vrv {
 // Syl
 //----------------------------------------------------------------------------
 
-Syl::Syl() : LayerElement("syl-"), TextListInterface(), TimeSpanningInterface(), AttTypography(), AttSylLog()
+Syl::Syl() : LayerElement("syl-"), TextListInterface(), TimeSpanningInterface(), AttLang(), AttTypography(), AttSylLog()
 {
     RegisterInterface(TimeSpanningInterface::GetAttClasses(), TimeSpanningInterface::IsInterface());
+    RegisterAttClass(ATT_LANG);
     RegisterAttClass(ATT_TYPOGRAPHY);
     RegisterAttClass(ATT_SYLLOG);
 
     Reset();
 }
 
-Syl::~Syl()
-{
-}
+Syl::~Syl() {}
 
 void Syl::Reset()
 {
     LayerElement::Reset();
     TimeSpanningInterface::Reset();
+    ResetLang();
     ResetTypography();
     ResetSylLog();
 
@@ -52,10 +53,13 @@ void Syl::Reset()
 
 void Syl::AddChild(Object *child)
 {
-    if (child->IsTextElement()) {
+    if (child->Is({ REND, TEXT })) {
         assert(dynamic_cast<TextElement *>(child));
     }
     else if (child->IsEditorialElement()) {
+        assert(dynamic_cast<EditorialElement *>(child));
+    }
+    else if (child->Is(REND)) {
         assert(dynamic_cast<EditorialElement *>(child));
     }
     else {
@@ -123,10 +127,37 @@ int Syl::FillStaffCurrentTimeSpanning(FunctorParams *functorParams)
     return TimeSpanningInterface::InterfaceFillStaffCurrentTimeSpanning(functorParams, this);
 }
 
+int Syl::AdjustSylSpacing(FunctorParams *functorParams)
+{
+    AdjustSylSpacingParams *params = dynamic_cast<AdjustSylSpacingParams *>(functorParams);
+    assert(params);
+
+    if (!this->HasContentHorizontalBB()) {
+        LogDebug("Syl %s is skipped in alignment - it is probably empty", this->GetUuid().c_str());
+        return FUNCTOR_CONTINUE;
+    }
+
+    if (params->m_previousSyl) {
+        int overlap = params->m_previousSyl->GetContentRight() - this->GetContentLeft()
+            + params->m_doc->GetDrawingDoubleUnit(100);
+        if (overlap > 0) {
+            params->m_overlapingSyl.push_back(
+                std::make_tuple(params->m_previousSyl->GetAlignment(), this->GetAlignment(), overlap));
+        }
+    }
+
+    params->m_previousSyl = this;
+
+    return FUNCTOR_CONTINUE;
+}
+
 int Syl::ResetDrawing(FunctorParams *functorParams)
 {
+    // Call parent one too
+    LayerElement::ResetDrawing(functorParams);
+
     // Pass it to the pseudo functor of the interface
     return TimeSpanningInterface::InterfaceResetDrawing(functorParams, this);
-};
+}
 
 } // namespace vrv

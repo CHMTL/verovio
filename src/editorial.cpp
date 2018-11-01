@@ -14,6 +14,7 @@
 //----------------------------------------------------------------------------
 
 #include "controlelement.h"
+#include "fig.h"
 #include "functorparams.h"
 #include "layer.h"
 #include "measure.h"
@@ -21,6 +22,7 @@
 #include "section.h"
 #include "staff.h"
 #include "system.h"
+#include "text.h"
 #include "textelement.h"
 #include "vrv.h"
 
@@ -30,18 +32,19 @@ namespace vrv {
 // EditorialElement
 //----------------------------------------------------------------------------
 
-EditorialElement::EditorialElement() : Object("ee-"), BoundaryStartInterface(), AttCommon(), AttCommonPart()
+EditorialElement::EditorialElement() : Object("ee-"), BoundaryStartInterface(), AttLabelled(), AttTyped()
 {
-    RegisterAttClass(ATT_COMMON);
-    RegisterAttClass(ATT_COMMONPART);
+    RegisterAttClass(ATT_LABELLED);
+    RegisterAttClass(ATT_TYPED);
 
     Reset();
 }
 
-EditorialElement::EditorialElement(std::string classid) : Object(classid), AttCommon()
+EditorialElement::EditorialElement(std::string classid)
+    : Object(classid), BoundaryStartInterface(), AttLabelled(), AttTyped()
 {
-    RegisterAttClass(ATT_COMMON);
-    RegisterAttClass(ATT_COMMONPART);
+    RegisterAttClass(ATT_LABELLED);
+    RegisterAttClass(ATT_TYPED);
 
     Reset();
 }
@@ -50,15 +53,13 @@ void EditorialElement::Reset()
 {
     Object::Reset();
     BoundaryStartInterface::Reset();
-    ResetCommon();
-    ResetCommonPart();
+    ResetLabelled();
+    ResetTyped();
 
     m_visibility = Visible;
 }
 
-EditorialElement::~EditorialElement()
-{
-}
+EditorialElement::~EditorialElement() {}
 
 void EditorialElement::AddChild(Object *child)
 {
@@ -77,22 +78,22 @@ void EditorialElement::AddChild(Object *child)
     else if (child->IsTextElement()) {
         assert(dynamic_cast<TextElement *>(child));
     }
-    else if (child->Is() == LAYER) {
+    else if (child->Is(LAYER)) {
         assert(dynamic_cast<Layer *>(child));
     }
-    else if (child->Is() == MEASURE) {
+    else if (child->Is(MEASURE)) {
         assert(dynamic_cast<Measure *>(child));
     }
-    else if (child->Is() == SCOREDEF) {
+    else if (child->Is(SCOREDEF)) {
         assert(dynamic_cast<ScoreDef *>(child));
     }
-    else if (child->Is() == STAFF) {
+    else if (child->Is(STAFF)) {
         assert(dynamic_cast<Staff *>(child));
     }
-    else if (child->Is() == STAFFDEF) {
+    else if (child->Is(STAFFDEF)) {
         assert(dynamic_cast<Staff *>(child));
     }
-    else if (child->Is() == STAFFGRP) {
+    else if (child->Is(STAFFGRP)) {
         assert(dynamic_cast<Staff *>(child));
     }
     else {
@@ -116,9 +117,7 @@ Abbr::Abbr() : EditorialElement("abbr-"), AttSource()
     Reset();
 }
 
-Abbr::~Abbr()
-{
-}
+Abbr::~Abbr() {}
 
 void Abbr::Reset()
 {
@@ -137,36 +136,11 @@ Add::Add() : EditorialElement("add-"), AttSource()
     Reset();
 }
 
-Add::~Add()
-{
-}
+Add::~Add() {}
 
 void Add::Reset()
 {
     EditorialElement::Reset();
-    ResetSource();
-}
-
-//----------------------------------------------------------------------------
-// Annot
-//----------------------------------------------------------------------------
-
-Annot::Annot() : EditorialElement("annot-"), AttPlist(), AttSource()
-{
-    RegisterAttClass(ATT_PLIST);
-    RegisterAttClass(ATT_SOURCE);
-
-    Reset();
-}
-
-Annot::~Annot()
-{
-}
-
-void Annot::Reset()
-{
-    EditorialElement::Reset();
-    ResetPlist();
     ResetSource();
 }
 
@@ -193,16 +167,14 @@ void App::Reset()
     EditorialElement::Reset();
 }
 
-App::~App()
-{
-}
+App::~App() {}
 
 void App::AddChild(Object *child)
 {
-    if (child->Is() == LEM) {
+    if (child->Is(LEM)) {
         assert(dynamic_cast<Lem *>(child));
     }
-    else if (child->Is() == RDG) {
+    else if (child->Is(RDG)) {
         assert(dynamic_cast<Rdg *>(child));
     }
     else {
@@ -238,34 +210,32 @@ void Choice::Reset()
     EditorialElement::Reset();
 }
 
-Choice::~Choice()
-{
-}
+Choice::~Choice() {}
 
 void Choice::AddChild(Object *child)
 {
-    if (child->Is() == ABBR) {
+    if (child->Is(ABBR)) {
         assert(dynamic_cast<Abbr *>(child));
     }
-    else if (child->Is() == CHOICE) {
+    else if (child->Is(CHOICE)) {
         assert(dynamic_cast<Choice *>(child));
     }
-    else if (child->Is() == CORR) {
+    else if (child->Is(CORR)) {
         assert(dynamic_cast<Corr *>(child));
     }
-    else if (child->Is() == EXPAN) {
+    else if (child->Is(EXPAN)) {
         assert(dynamic_cast<Expan *>(child));
     }
-    else if (child->Is() == ORIG) {
+    else if (child->Is(ORIG)) {
         assert(dynamic_cast<Orig *>(child));
     }
-    else if (child->Is() == REG) {
+    else if (child->Is(REG)) {
         assert(dynamic_cast<Reg *>(child));
     }
-    else if (child->Is() == SIC) {
+    else if (child->Is(SIC)) {
         assert(dynamic_cast<Sic *>(child));
     }
-    else if (child->Is() == UNCLEAR) {
+    else if (child->Is(UNCLEAR)) {
         assert(dynamic_cast<Unclear *>(child));
     }
     else {
@@ -289,9 +259,7 @@ Corr::Corr() : EditorialElement("corr-"), AttSource()
     Reset();
 }
 
-Corr::~Corr()
-{
-}
+Corr::~Corr() {}
 
 void Corr::Reset()
 {
@@ -310,9 +278,7 @@ Damage::Damage() : EditorialElement("lem-"), AttSource()
     Reset();
 }
 
-Damage::~Damage()
-{
-}
+Damage::~Damage() {}
 
 void Damage::Reset()
 {
@@ -331,9 +297,7 @@ Del::Del() : EditorialElement("del-"), AttSource()
     Reset();
 }
 
-Del::~Del()
-{
-}
+Del::~Del() {}
 
 void Del::Reset()
 {
@@ -352,9 +316,7 @@ Expan::Expan() : EditorialElement("expan-"), AttSource()
     Reset();
 }
 
-Expan::~Expan()
-{
-}
+Expan::~Expan() {}
 
 void Expan::Reset()
 {
@@ -373,9 +335,7 @@ Lem::Lem() : EditorialElement("lem-"), AttSource()
     Reset();
 }
 
-Lem::~Lem()
-{
-}
+Lem::~Lem() {}
 
 void Lem::Reset()
 {
@@ -394,9 +354,7 @@ Orig::Orig() : EditorialElement("orig-"), AttSource()
     Reset();
 }
 
-Orig::~Orig()
-{
-}
+Orig::~Orig() {}
 
 void Orig::Reset()
 {
@@ -415,9 +373,7 @@ Rdg::Rdg() : EditorialElement("rdg-"), AttSource()
     Reset();
 }
 
-Rdg::~Rdg()
-{
-}
+Rdg::~Rdg() {}
 
 void Rdg::Reset()
 {
@@ -436,9 +392,7 @@ Reg::Reg() : EditorialElement("reg-"), AttSource()
     Reset();
 }
 
-Reg::~Reg()
-{
-}
+Reg::~Reg() {}
 
 void Reg::Reset()
 {
@@ -457,9 +411,7 @@ Restore::Restore() : EditorialElement("restore-"), AttSource()
     Reset();
 }
 
-Restore::~Restore()
-{
-}
+Restore::~Restore() {}
 
 void Restore::Reset()
 {
@@ -478,9 +430,7 @@ Sic::Sic() : EditorialElement("sic-"), AttSource()
     Reset();
 }
 
-Sic::~Sic()
-{
-}
+Sic::~Sic() {}
 
 void Sic::Reset()
 {
@@ -499,9 +449,7 @@ Supplied::Supplied() : EditorialElement("supplied-"), AttSource()
     Reset();
 }
 
-Supplied::~Supplied()
-{
-}
+Supplied::~Supplied() {}
 
 void Supplied::Reset()
 {
@@ -520,9 +468,7 @@ Unclear::Unclear() : EditorialElement("unclear-"), AttSource()
     Reset();
 }
 
-Unclear::~Unclear()
-{
-}
+Unclear::~Unclear() {}
 
 void Unclear::Reset()
 {
@@ -570,7 +516,7 @@ int EditorialElement::ResetDrawing(FunctorParams *functorParams)
     }
 
     return FUNCTOR_CONTINUE;
-};
+}
 
 int EditorialElement::CastOffSystems(FunctorParams *functorParams)
 {
@@ -578,7 +524,7 @@ int EditorialElement::CastOffSystems(FunctorParams *functorParams)
     assert(params);
 
     // Since the functor returns FUNCTOR_SIBLINGS we should never go lower than the system children
-    assert(dynamic_cast<System *>(this->m_parent));
+    assert(dynamic_cast<System *>(this->GetParent()));
 
     // Special case where we use the Relinquish method.
     // We want to move the measure to the currentSystem. However, we cannot use DetachChild

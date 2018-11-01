@@ -8,9 +8,8 @@
 #ifndef __VRV_LIGATURE_H__
 #define __VRV_LIGATURE_H__
 
-#include "atts_shared.h"
+#include "atts_mensural.h"
 #include "drawinginterface.h"
-#include "durationinterface.h"
 #include "layerelement.h"
 
 namespace vrv {
@@ -26,14 +25,7 @@ namespace vrv {
  * It contains notes.
  */
 
-class Ligature : public LayerElement,
-                 public ObjectListInterface,
-                 public StemmedDrawingInterface,
-                 public DurationInterface,
-                 public AttCommon,
-                 public AttStems,
-                 public AttStemsCmn,
-                 public AttTiepresent {
+class Ligature : public LayerElement, public ObjectListInterface, public AttLigatureLog {
 public:
     /**
      * @name Constructors, destructors, reset and class name methods
@@ -44,59 +36,50 @@ public:
     virtual ~Ligature();
     virtual void Reset();
     virtual std::string GetClassName() const { return "Ligature"; }
-    virtual ClassId Is() const { return LIGATURE; }
+    virtual ClassId GetClassId() const { return LIGATURE; }
     ///@}
-
-    virtual DurationInterface *GetDurationInterface() { return dynamic_cast<DurationInterface *>(this); }
 
     /** Override the method since alignment is required */
     virtual bool HasToBeAligned() const { return true; }
 
     /**
-     * Add an element (only notes are supported) to a ligature.
+     * Add children (notes or editorial markup)
      */
     virtual void AddChild(Object *object);
 
-    virtual void FilterList(ListOfObjects *childlist);
-
     /**
-     * Returns list of notes that have accidentals
+     * Return information about the note's position in the ligature
+     * Assume that the note is in the ligature and does not check for that.
      */
-    void ResetAccidList();
-
-    /**
-     * Return information about the note's position in the ligature ??
-     */
-    ///@{
-    /** Return 0 if the note is the middle note, -1 if below it and 1 if above */
     int PositionInLigature(Note *note);
-    ///@}
 
     /**
-     * Prepares a 2D grid of booleans to track where accidentals are placed. ??
-     * Further documentation is in chord.cpp comments. ??
-     */
-    void ResetAccidSpace(int fullUnit);
-
-    /**
-     * @name Set and get the stem direction and stem positions
-     * The methods are overriding the interface because we want to apply it to child notes
+     * @name Return the first and last note in the ligature (NULL if empty)
      */
     ///@{
-    virtual void SetDrawingStemDir(data_STEMDIRECTION stemDir);
-    virtual void SetDrawingStemStart(Point stemStart);
-    virtual void SetDrawingStemEnd(Point stemEnd);
+    Note *GetFirstNote();
+    Note *GetLastNote();
     ///@}
 
     //----------//
     // Functors //
     //----------//
 
+    /**
+     * See Object::ResetDrawing
+     */
+    virtual int ResetDrawing(FunctorParams *functorParams);
+
 protected:
     /**
      * Clear the m_clusters vector and delete all the objects.
      */
     void ClearClusters();
+
+    /**
+     * Filter the flat list and keep only Note elements.
+     */
+    virtual void FilterList(ListOfObjects *childlist);
 
 public:
 };

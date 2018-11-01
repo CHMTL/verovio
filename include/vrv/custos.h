@@ -8,7 +8,10 @@
 #ifndef __VRV_CUSTOS_H__
 #define __VRV_CUSTOS_H__
 
+#include "atts_analytical.h"
+#include "atts_shared.h"
 #include "layerelement.h"
+#include "pitchinterface.h"
 #include "positioninterface.h"
 
 namespace vrv {
@@ -17,7 +20,7 @@ namespace vrv {
 // Custos
 //----------------------------------------------------------------------------
 
-class Custos : public LayerElement, public PositionInterface {
+class Custos : public LayerElement, public PitchInterface, public PositionInterface, public AttColor {
 public:
     /**
      * @name Constructors, destructors, and other standard methods
@@ -28,13 +31,32 @@ public:
     virtual ~Custos();
     virtual void Reset();
     virtual std::string GetClassName() const { return "Custos"; }
-    virtual ClassId Is() const { return CUSTOS; }
+    virtual ClassId GetClassId() const { return CUSTOS; }
     ///@}
 
-    virtual PositionInterface *GetPositionInterface() { return dynamic_cast<PositionInterface *>(this); }
+    /**
+     * @name Getter to interfaces
+     */
+    ///@{
+    virtual PitchInterface *GetPitchInterface() { return dynamic_cast<PitchInterface *>(this); }
+    ///@}
 
     /** Override the method since alignment is required */
     virtual bool HasToBeAligned() const { return true; }
+
+    //----------//
+    // Functors //
+    //----------//
+
+    /**
+     * See Object::ResetDrawing
+     */
+    virtual int ResetDrawing(FunctorParams *functorParams);
+
+    /**
+     * See Object::ResetHorizontalAlignment
+     */
+    virtual int ResetHorizontalAlignment(FunctorParams *functorParams);
 
 private:
     //

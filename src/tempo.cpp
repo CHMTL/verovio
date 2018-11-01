@@ -13,8 +13,8 @@
 
 //----------------------------------------------------------------------------
 
-#include "editorial.h"
 #include "controlelement.h"
+#include "editorial.h"
 #include "text.h"
 #include "vrv.h"
 
@@ -24,30 +24,33 @@ namespace vrv {
 // Tempo
 //----------------------------------------------------------------------------
 
-Tempo::Tempo() : ControlElement("tempo-"), TextDirInterface(), TimePointInterface(), AttMiditempo()
+Tempo::Tempo()
+    : ControlElement("tempo-"), TextDirInterface(), TimePointInterface(), AttLang(), AttMidiTempo(), AttMmTempo()
 {
     RegisterInterface(TextDirInterface::GetAttClasses(), TextDirInterface::IsInterface());
     RegisterInterface(TimePointInterface::GetAttClasses(), TimePointInterface::IsInterface());
+    RegisterAttClass(ATT_LANG);
     RegisterAttClass(ATT_MIDITEMPO);
+    RegisterAttClass(ATT_MMTEMPO);
 
     Reset();
 }
 
-Tempo::~Tempo()
-{
-}
+Tempo::~Tempo() {}
 
 void Tempo::Reset()
 {
     ControlElement::Reset();
     TextDirInterface::Reset();
     TimePointInterface::Reset();
-    ResetMiditempo();
+    ResetLang();
+    ResetMidiTempo();
+    ResetMmTempo();
 }
 
 void Tempo::AddChild(Object *child)
 {
-    if (child->IsTextElement()) {
+    if (child->Is({ REND, TEXT })) {
         assert(dynamic_cast<TextElement *>(child));
     }
     else if (child->IsEditorialElement()) {

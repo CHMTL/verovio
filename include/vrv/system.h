@@ -8,10 +8,11 @@
 #ifndef __VRV_SYSTEM_H__
 #define __VRV_SYSTEM_H__
 
-#include "aligner.h"
 #include "drawinginterface.h"
 #include "editorial.h"
 #include "object.h"
+#include "verticalaligner.h"
+#include "vrvdef.h"
 
 namespace vrv {
 
@@ -20,6 +21,7 @@ class DeviceContext;
 class Ending;
 class Measure;
 class ScoreDef;
+class Staff;
 
 //----------------------------------------------------------------------------
 // System
@@ -29,8 +31,8 @@ class ScoreDef;
  * This class represents a system in a laid-out score (Doc).
  * A System is contained in a Page.
  * It contains Staff objects.
-*/
-class System : public Object, public DrawingListInterface {
+ */
+class System : public Object, public DrawingListInterface, public AttTyped {
 public:
     /**
      * @name Constructors, destructors, and other standard methods
@@ -41,7 +43,7 @@ public:
     virtual ~System();
     virtual void Reset();
     virtual std::string GetClassName() const { return "System"; }
-    virtual ClassId Is() const { return SYSTEM; }
+    virtual ClassId GetClassId() const { return SYSTEM; }
     ///@}
 
     /**
@@ -49,6 +51,24 @@ public:
      */
     ///@{
     virtual void AddChild(Object *object);
+    ///@}
+
+    /**
+     * @name Get the X and Y drawing position
+     */
+    ///@{
+    virtual int GetDrawingX() const;
+    virtual int GetDrawingY() const;
+    ///@}
+
+    /**
+     * @name Get and set the X and Y drawing relative positions
+     */
+    ///@{
+    int GetDrawingXRel() const { return m_drawingXRel; }
+    virtual void SetDrawingXRel(int drawingXRel);
+    int GetDrawingYRel() const { return m_drawingYRel; }
+    virtual void SetDrawingYRel(int drawingYRel);
     ///@}
 
     /**
@@ -67,16 +87,12 @@ public:
     int GetHeight() const;
 
     /**
-     * Return the default horizontal spacing of system.
-     */
-    int GetVerticalSpacing() const;
-
-    /**
      * Return the index position of the system in its page parent
      */
     int GetSystemIdx() const { return Object::GetIdx(); }
 
-    void SetCurrentFloatingPositioner(int staffN, FloatingObject *object, int x, int y);
+    bool SetCurrentFloatingPositioner(
+        int staffN, FloatingObject *object, Object *objectX, Object *objectY, char spanningType = SPANNING_START_END);
 
     /**
      * @name Setter and getter of the drawing scoreDef
@@ -84,6 +100,20 @@ public:
     ///@{
     ScoreDef *GetDrawingScoreDef() const { return m_drawingScoreDef; }
     void SetDrawingScoreDef(ScoreDef *drawingScoreDef);
+    ///@}
+
+    /**
+     * Check if the notes between the start and end have mixed drawing stem directions.
+     * The start and end element are expected to be on the same staff and same layer.
+     */
+    bool HasMixedDrawingStemDir(LayerElement *start, LayerElement *end);
+
+    /**
+     * @name Setter and getter of the drawing visible flag
+     */
+    ///@{
+    bool IsDrawingOptimized() const { return m_drawingIsOptimized; }
+    void IsDrawingOptimized(bool drawingIsOptimized) { m_drawingIsOptimized = drawingIsOptimized; }
     ///@}
 
     //----------//
@@ -96,6 +126,14 @@ public:
     virtual int UnsetCurrentScoreDef(FunctorParams *functorParams);
 
     /**
+     * See Object::OptimizeScoreDef
+     */
+    ///@{
+    virtual int OptimizeScoreDef(FunctorParams *functorParams);
+    virtual int OptimizeScoreDefEnd(FunctorParams *functorParams);
+    ///@}
+
+    /**
      * See Object::ResetHorizontalAlignment
      */
     virtual int ResetHorizontalAlignment(FunctorParams *functorParams);
@@ -106,24 +144,35 @@ public:
     virtual int ResetVerticalAlignment(FunctorParams *functorParams);
 
     /**
+     * See Object::ApplyPPUFactor
+     */
+    virtual int ApplyPPUFactor(FunctorParams *functorParams);
+
+    /**
      * See Object::AlignHorizontally
      */
     virtual int AlignHorizontally(FunctorParams *functorParams);
 
     /**
+     * See Object::AdjustXOverflow
+     */
+    ///@{
+    virtual int AdjustXOverflow(FunctorParams *functorParams);
+    virtual int AdjustXOverflowEnd(FunctorParams *functorParams);
+    ///@}
+
+    /**
      * See Object::AlignVertically
      */
+    ///@{
     virtual int AlignVertically(FunctorParams *functorParams);
+    virtual int AlignVerticallyEnd(FunctorParams *functorParams);
+    ///@}
 
     /**
-     * See Object::SetAligmentYPos
+     * See Object::AdjustYPos
      */
-    virtual int SetAligmentYPos(FunctorParams *functorParams);
-
-    /**
-     * See Object::IntegrateBoundingBoxYShift
-     */
-    virtual int IntegrateBoundingBoxYShift(FunctorParams *functorParams);
+    virtual int AdjustYPos(FunctorParams *functorParams);
 
     /**
      * See Object::AlignSystems
@@ -142,9 +191,9 @@ public:
     virtual int JustifyX(FunctorParams *functorParams);
 
     /**
-     * See Object::CalcStaffOverlap
+     * See Object::AdjustStaffOverlap
      */
-    virtual int CalcStaffOverlap(FunctorParams *functorParams);
+    virtual int AdjustStaffOverlap(FunctorParams *functorParams);
 
     /**
      * See Object::AdjustFloatingPostioners
@@ -160,11 +209,6 @@ public:
      * See Object::UnCastOff
      */
     virtual int UnCastOff(FunctorParams *functorParams);
-
-    /**
-     * See Object::SetDrawingXY
-     */
-    virtual int SetDrawingXY(FunctorParams *functorParams);
 
     /**
      * See Object::CastOffSystemsEnd
@@ -185,20 +229,10 @@ public:
      */
     int m_yAbs;
     /**
-     * The Y relative position of the system.
-     * It is used internally when calculating the layout and it is not stored in the file.
-     */
-    int m_drawingYRel;
-    /**
      * The x absolute position of the  system for facsimile layouts.
      * This is the top left corner of the system.
      */
     int m_xAbs;
-    /**
-     * The X relative position of the system.
-     * It is used internally when calculating the layout and it is not stored in the file.
-     */
-    int m_drawingXRel;
     /**
      * The width used by the labels at the left of the system.
      * It is used internally when calculating the layout and it is not stored in the file.
@@ -215,8 +249,29 @@ public:
     int m_drawingJustifiableWidth;
     ///@}
 
+protected:
+    /**
+     * The X relative position of the system.
+     * It is used internally when calculating the layout and it is not stored in the file.
+     */
+    int m_drawingXRel;
+    /**
+     * The Y relative position of the system.
+     * It is used internally when calculating the layout and it is not stored in the file.
+     */
+    int m_drawingYRel;
+
 private:
+    /**
+     * The drawing scoreDef at the beginning of the system.
+     */
     ScoreDef *m_drawingScoreDef;
+
+    /**
+     * A flag indicating if the system is optimized.
+     * This does not mean that a staff is hidden, but only that it can be optimized.
+     */
+    bool m_drawingIsOptimized;
 };
 
 } // namespace vrv

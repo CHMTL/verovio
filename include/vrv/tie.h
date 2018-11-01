@@ -17,6 +17,9 @@ namespace vrv {
 // Tie
 //----------------------------------------------------------------------------
 
+/**
+ * This class models the MEI <tie> element.
+ */
 class Tie : public ControlElement, public TimeSpanningInterface, public AttColor, public AttCurvature {
 public:
     /**
@@ -28,15 +31,27 @@ public:
     virtual ~Tie();
     virtual void Reset();
     virtual std::string GetClassName() const { return "Tie"; }
-    virtual ClassId Is() const { return TIE; }
+    virtual ClassId GetClassId() const { return TIE; }
     ///@}
 
+    /**
+     * @name Getter to interfaces
+     */
+    ///@{
     virtual TimePointInterface *GetTimePointInterface() { return dynamic_cast<TimePointInterface *>(this); }
     virtual TimeSpanningInterface *GetTimeSpanningInterface() { return dynamic_cast<TimeSpanningInterface *>(this); }
+    ///@}
 
     //----------//
     // Functors //
     //----------//
+
+    /**
+     * see Object::ResolveMIDITies
+     */
+    ///@{
+    virtual int ResolveMIDITies(FunctorParams *functorParams);
+    ///@}
 
 private:
     //

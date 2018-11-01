@@ -6,6 +6,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include "vrv.h"
+#include <iostream>
 
 //----------------------------------------------------------------------------
 
@@ -13,6 +14,7 @@
 #include <cmath>
 #include <sstream>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <vector>
 
@@ -149,13 +151,14 @@ bool Resources::LoadFont(std::string fontName)
     int unitsPerEm = atoi(root.attribute("units-per-em").value());
     pugi::xml_node current;
     for (current = root.child("g"); current; current = current.next_sibling("g")) {
+        Glyph *glyph = NULL;
         if (current.attribute("c")) {
             wchar_t smuflCode = (wchar_t)strtol(current.attribute("c").value(), NULL, 16);
             if (!m_font.count(smuflCode)) {
                 LogWarning("Glyph with code '%d' not found.", smuflCode);
                 continue;
             }
-            Glyph *glyph = &m_font[smuflCode];
+            glyph = &m_font[smuflCode];
             if (glyph->GetUnitsPerEm() != unitsPerEm * 10) {
                 LogWarning("Glyph and bounding box units-per-em for code '%d' miss-match (bounding box: %d)", smuflCode,
                     unitsPerEm);
@@ -169,6 +172,18 @@ bool Resources::LoadFont(std::string fontName)
             if (current.attribute("h")) height = atof(current.attribute("h").value());
             glyph->SetBoundingBox(x, y, width, height);
             if (current.attribute("h-a-x")) glyph->SetHorizAdvX(atof(current.attribute("h-a-x").value()));
+        }
+
+        if (!glyph) continue;
+
+        // load anchors
+        pugi::xml_node anchor;
+        for (anchor = current.child("a"); anchor; anchor = anchor.next_sibling("a")) {
+            if (anchor.attribute("n")) {
+                std::string name = std::string(anchor.attribute("n").value());
+                // No check for possible x and y missing attributes - not very safe.
+                glyph->SetAnchor(name, atof(anchor.attribute("x").value()), atof(anchor.attribute("y").value()));
+            }
         }
     }
 
@@ -257,9 +272,9 @@ void LogDebug(const char *fmt, ...)
 #else
     va_list args;
     va_start(args, fmt);
-    printf("[Debug] ");
-    vprintf(fmt, args);
-    printf("\n");
+    fprintf(stderr, "[Debug] ");
+    vfprintf(stderr, fmt, args);
+    fprintf(stderr, "\n");
     va_end(args);
 #endif
 #endif
@@ -279,7 +294,7 @@ void LogError(const char *fmt, ...)
     va_list args;
     va_start(args, fmt);
     fprintf(stderr, "[Error] ");
-    fprintf(stderr, fmt, args);
+    vfprintf(stderr, fmt, args);
     fprintf(stderr, "\n");
     va_end(args);
 #endif
@@ -298,9 +313,9 @@ void LogMessage(const char *fmt, ...)
 #else
     va_list args;
     va_start(args, fmt);
-    printf("[Message] ");
-    vprintf(fmt, args);
-    printf("\n");
+    fprintf(stderr, "[Message] ");
+    vfprintf(stderr, fmt, args);
+    fprintf(stderr, "\n");
     va_end(args);
 #endif
 }
@@ -318,9 +333,9 @@ void LogWarning(const char *fmt, ...)
 #else
     va_list args;
     va_start(args, fmt);
-    printf("[Warning] ");
-    vprintf(fmt, args);
-    printf("\n");
+    fprintf(stderr, "[Warning] ");
+    vfprintf(stderr, fmt, args);
+    fprintf(stderr, "\n");
     va_end(args);
 #endif
 }
@@ -331,7 +346,7 @@ void DisableLog()
 }
 
 #ifdef EMSCRIPTEN
-bool LogBufferContains(std::string s)
+bool LogBufferContains(const std::string &s)
 {
     std::vector<std::string>::iterator iter = logBuffer.begin();
     while (iter != logBuffer.end()) {
@@ -390,6 +405,15 @@ bool AreEqual(double dFirstVal, double dSecondVal)
     return std::fabs(dFirstVal - dSecondVal) < 1E-3;
 }
 
+std::string ExtractUuidFragment(std::string refUuid)
+{
+    size_t pos = refUuid.find_last_of("#");
+    if ((pos != std::string::npos) && (pos < refUuid.length() - 1)) {
+        refUuid = refUuid.substr(pos + 1);
+    }
+    return refUuid;
+}
+
 std::string UTF16to8(const std::wstring in)
 {
     std::string out;
@@ -414,7 +438,7 @@ std::string GetFileVersion(int vmaj, int vmin, int vrev)
     return StringFormat("%04d.%04d.%04d", vmaj, vmin, vrev);
 }
 
-std::string GetFilename(std::string fullpath)
+std::string GetFilename(std::string &fullpath)
 {
     // remove extension
     std::string name = fullpath;
@@ -467,40 +491,39 @@ std::string GetVersion()
 
  */
 
-static const std::string base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                        "abcdefghijklmnopqrstuvwxyz"
-                                        "0123456789+/";
+static const std::string base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                       "abcdefghijklmnopqrstuvwxyz"
+                                       "0123456789+/";
 
-std::string Base64Encode(unsigned char const *bytes_to_encode, unsigned int in_len)
+std::string Base64Encode(unsigned char const *bytesToEncode, unsigned int inLen)
 {
     std::string ret;
     int i = 0;
-    int j = 0;
-    unsigned char char_array_3[3];
-    unsigned char char_array_4[4];
+    unsigned char charArray3[3];
+    unsigned char charArray4[4];
 
-    while (in_len--) {
-        char_array_3[i++] = *(bytes_to_encode++);
+    while (inLen--) {
+        charArray3[i++] = *(bytesToEncode++);
         if (i == 3) {
-            char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
-            char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
-            char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
-            char_array_4[3] = char_array_3[2] & 0x3f;
+            charArray4[0] = (charArray3[0] & 0xfc) >> 2;
+            charArray4[1] = ((charArray3[0] & 0x03) << 4) + ((charArray3[1] & 0xf0) >> 4);
+            charArray4[2] = ((charArray3[1] & 0x0f) << 2) + ((charArray3[2] & 0xc0) >> 6);
+            charArray4[3] = charArray3[2] & 0x3f;
 
-            for (i = 0; (i < 4); i++) ret += base64_chars[char_array_4[i]];
+            for (i = 0; (i < 4); i++) ret += base64Chars[charArray4[i]];
             i = 0;
         }
     }
 
     if (i) {
-        for (j = i; j < 3; j++) char_array_3[j] = '\0';
+        for (int j = i; j < 3; j++) charArray3[j] = '\0';
 
-        char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
-        char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
-        char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
-        char_array_4[3] = char_array_3[2] & 0x3f;
+        charArray4[0] = (charArray3[0] & 0xfc) >> 2;
+        charArray4[1] = ((charArray3[0] & 0x03) << 4) + ((charArray3[1] & 0xf0) >> 4);
+        charArray4[2] = ((charArray3[1] & 0x0f) << 2) + ((charArray3[2] & 0xc0) >> 6);
+        charArray4[3] = charArray3[2] & 0x3f;
 
-        for (j = 0; (j < i + 1); j++) ret += base64_chars[char_array_4[j]];
+        for (int j = 0; (j < i + 1); j++) ret += base64Chars[charArray4[j]];
 
         while ((i++ < 3)) ret += '=';
     }

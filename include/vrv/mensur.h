@@ -10,6 +10,7 @@
 
 #include "atts_mensural.h"
 #include "atts_shared.h"
+#include "atts_visual.h"
 #include "layerelement.h"
 
 namespace vrv {
@@ -24,11 +25,14 @@ class ScoreDefInterface;
  * This class models the MEI <mensur> element.
  */
 class Mensur : public LayerElement,
+               public AttColor,
+               public AttCue,
                public AttDurationRatio,
                public AttMensuralShared,
                public AttMensurLog,
                public AttMensurVis,
-               public AttSlashcount {
+               public AttSlashCount,
+               public AttStaffLoc {
 public:
     /**
      * @name Constructors, destructors, and other standard methods
@@ -41,12 +45,21 @@ public:
     virtual ~Mensur();
     virtual void Reset();
     virtual std::string GetClassName() const { return "Mensur"; }
-    virtual ClassId Is() const { return MENSUR; }
+    virtual ClassId GetClassId() const { return MENSUR; }
     virtual Object *Clone() const { return new Mensur(*this); }
     ///@}
 
     /** Override the method since alignment is required */
     virtual bool HasToBeAligned() const { return true; }
+
+    //----------//
+    // Functors //
+    //----------//
+
+    /**
+     * See Object::FindSpaceInReferenceAlignments
+     */
+    virtual int FindSpaceInReferenceAlignments(FunctorParams *functorParams);
 
 private:
     //

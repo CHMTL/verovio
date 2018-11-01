@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// Name:        ending.h
+// Name:        ending.cpp
 // Author:      Laurent Pugin
 // Created:     14/07/2016
 // Copyright (c) Authors and others. All rights reserved.
@@ -27,33 +27,36 @@ namespace vrv {
 // Ending
 //----------------------------------------------------------------------------
 
-Ending::Ending() : SystemElement("ending-"), BoundaryStartInterface(), AttCommon()
+Ending::Ending() : SystemElement("ending-"), BoundaryStartInterface(), AttLineRend(), AttNNumberLike()
 {
-    RegisterAttClass(ATT_COMMON);
+    RegisterAttClass(ATT_LINEREND);
+    RegisterAttClass(ATT_NINTEGER);
 
     Reset();
 }
 
-Ending::~Ending()
-{
-}
+Ending::~Ending() {}
 
 void Ending::Reset()
 {
     SystemElement::Reset();
     BoundaryStartInterface::Reset();
-    ResetCommon();
+    ResetLineRend();
+    ResetNNumberLike();
 }
 
 void Ending::AddChild(Object *child)
 {
-    if (child->Is() == MEASURE) {
+    if (child->Is(MEASURE)) {
         assert(dynamic_cast<Measure *>(child));
+    }
+    else if (child->Is(SCOREDEF)) {
+        assert(dynamic_cast<ScoreDef *>(child));
     }
     else if (child->IsSystemElement()) {
         assert(dynamic_cast<SystemElement *>(child));
         // here we are actually allowing ending withing ending, which is wrong
-        if (child->Is() == ENDING) {
+        if (child->Is(ENDING)) {
             LogError("Adding '%s' to a '%s'", child->GetClassName().c_str(), this->GetClassName().c_str());
             assert(false);
         }
@@ -117,7 +120,7 @@ int Ending::ResetDrawing(FunctorParams *functorParams)
     this->BoundaryStartInterface::InterfaceResetDrawing(functorParams);
 
     return FUNCTOR_CONTINUE;
-};
+}
 
 int Ending::CastOffSystems(FunctorParams *functorParams)
 {
@@ -125,7 +128,7 @@ int Ending::CastOffSystems(FunctorParams *functorParams)
     assert(params);
 
     // Since the functor returns FUNCTOR_SIBLINGS we should never go lower than the system children
-    assert(dynamic_cast<System *>(this->m_parent));
+    assert(dynamic_cast<System *>(this->GetParent()));
 
     // Special case where we use the Relinquish method.
     // We want to move the measure to the currentSystem. However, we cannot use DetachChild
@@ -154,9 +157,11 @@ int Ending::PrepareFloatingGrps(FunctorParams *functorParams)
     assert(params);
 
     if (params->m_previousEnding) {
-        // We need to group the previous and this ending
-        params->m_previousEnding->SetDrawingGrpId(params->m_drawingGrpId);
-        this->SetDrawingGrpId(params->m_drawingGrpId);
+        // We need to group the previous and this ending - the previous one should have a grpId
+        if (params->m_previousEnding->GetDrawingGrpId() == 0) {
+            LogDebug("Something went wrong with the gouping of the endings");
+        }
+        this->SetDrawingGrpId(params->m_previousEnding->GetDrawingGrpId());
         // Also set the previous ending to NULL to the grpId is _not_ incremented at the next measure
         // We need this because three or more endings might have to be grouped together
         params->m_previousEnding = NULL;

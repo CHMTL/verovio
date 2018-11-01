@@ -19,9 +19,13 @@ namespace vrv {
 //----------------------------------------------------------------------------
 
 /**
- * This class models the MEI <mRest>
+ * This class models the MEI <mRest> element.
  */
-class MRest : public LayerElement, public PositionInterface, public AttVisibility, public AttFermatapresent {
+class MRest : public LayerElement,
+              public PositionInterface,
+              public AttCue,
+              public AttFermataPresent,
+              public AttVisibility {
 public:
     /**
      * @name Constructors, destructors, reset and class name methods
@@ -32,10 +36,34 @@ public:
     virtual ~MRest();
     virtual void Reset();
     virtual std::string GetClassName() const { return "MRest"; }
-    virtual ClassId Is() const { return MREST; }
+    virtual ClassId GetClassId() const { return MREST; }
     ///@}
 
+    /**
+     * @name Getter to interfaces
+     */
+    ///@{
     virtual PositionInterface *GetPositionInterface() { return dynamic_cast<PositionInterface *>(this); }
+    ///@}
+
+    //----------//
+    // Functors //
+    //----------//
+
+    /**
+     * See Object::ConvertAnalyticalMarkup
+     */
+    virtual int ConvertAnalyticalMarkup(FunctorParams *functorParams);
+
+    /**
+     * See Object::ResetDrawing
+     */
+    virtual int ResetDrawing(FunctorParams *functorParams);
+
+    /**
+     * See Object::ResetHorizontalAlignment
+     */
+    virtual int ResetHorizontalAlignment(FunctorParams *functorParams);
 
 private:
     //

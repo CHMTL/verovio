@@ -22,7 +22,11 @@ class ScoreDefInterface;
 /**
  * This class models the MEI <clef> element.
  */
-class Clef : public LayerElement, public AttClefshape, public AttLineloc, public AttOctavedisplacement {
+class Clef : public LayerElement,
+             public AttClefShape,
+             public AttColor,
+             public AttLineLoc,
+             public AttOctaveDisplacement {
 public:
     /**
      * @name Constructors, destructors, and other standard methods
@@ -36,7 +40,7 @@ public:
     virtual void Reset();
     virtual Object *Clone() const { return new Clef(*this); }
     virtual std::string GetClassName() const { return "Clef"; }
-    virtual ClassId Is() const { return CLEF; }
+    virtual ClassId GetClassId() const { return CLEF; }
     ///@}
 
     /** Override the method since alignment is required */
@@ -45,12 +49,12 @@ public:
     /**
      * Return the offset of the clef
      */
-    int GetClefOffset() const;
+    int GetClefLocOffset() const;
 
     /**
      * Return a clef id based on the various parameters
      */
-    static int ClefId(data_CLEFSHAPE shape, char line, data_OCTAVE_DIS octaveDis, data_PLACE place);
+    static int ClefId(data_CLEFSHAPE shape, char line, data_OCTAVE_DIS octaveDis, data_STAFFREL_basic place);
 
 private:
     //

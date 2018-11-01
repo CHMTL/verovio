@@ -5,10 +5,13 @@
 // Copyright (c) Authors and others. All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
 
+#include "object.h"
+
 //----------------------------------------------------------------------------
 
 #include <assert.h>
 #include <iostream>
+#include <math.h>
 #include <sstream>
 
 //----------------------------------------------------------------------------
@@ -24,12 +27,16 @@
 #include "io.h"
 #include "keysig.h"
 #include "layer.h"
+#include "linkinginterface.h"
+#include "mdiv.h"
 #include "measure.h"
 #include "mensur.h"
 #include "metersig.h"
 #include "note.h"
 #include "page.h"
+#include "plistinterface.h"
 #include "staff.h"
+#include "staffdef.h"
 #include "system.h"
 #include "tempo.h"
 #include "text.h"
@@ -37,156 +44,6 @@
 #include "vrv.h"
 
 namespace vrv {
-
-//----------------------------------------------------------------------------
-// BoundingBox
-//----------------------------------------------------------------------------
-
-BoundingBox::BoundingBox()
-{
-    ResetBoundingBox();
-}
-
-ClassId BoundingBox::Is() const
-{
-    // we should always have the method overridden
-    assert(false);
-    return BOUNDING_BOX;
-};
-
-void BoundingBox::UpdateContentBBoxX(int x1, int x2)
-{
-    // LogDebug("CB Was: %i %i %i %i", m_contentBB_x1, m_contentBB_y1, m_contentBB_x2, m_contentBB_y2);
-
-    int min_x = std::min(x1, x2);
-    int max_x = std::max(x1, x2);
-
-    min_x -= m_drawingX;
-    max_x -= m_drawingX;
-
-    if (m_contentBB_x1 > min_x) m_contentBB_x1 = min_x;
-    if (m_contentBB_x2 < max_x) m_contentBB_x2 = max_x;
-
-    m_updatedBBoxX = true;
-    // LogDebug("CB Is:  %i %i %i %i %s", m_contentBB_x1,m_contentBB_y1, m_contentBB_x2, m_contentBB_y2,
-    // GetClassName().c_str());
-}
-
-void BoundingBox::UpdateContentBBoxY(int y1, int y2)
-{
-    // LogDebug("CB Was: %i %i %i %i", m_contentBB_x1, m_contentBB_y1, m_contentBB_x2, m_contentBB_y2);
-
-    int min_y = std::min(y1, y2);
-    int max_y = std::max(y1, y2);
-
-    min_y -= m_drawingY;
-    max_y -= m_drawingY;
-
-    if (m_contentBB_y1 > min_y) m_contentBB_y1 = min_y;
-    if (m_contentBB_y2 < max_y) m_contentBB_y2 = max_y;
-
-    m_updatedBBoxY = true;
-    // LogDebug("CB Is:  %i %i %i %i %s", m_contentBB_x1,m_contentBB_y1, m_contentBB_x2, m_contentBB_y2,
-    // GetClassName().c_str());
-}
-
-void BoundingBox::UpdateSelfBBoxX(int x1, int x2)
-{
-    // LogDebug("SB Was: %i %i %i %i", m_selfBB_x1,m_selfBB_y1, m_selfBB_x2, m_selfBB_y2);
-
-    int min_x = std::min(x1, x2);
-    int max_x = std::max(x1, x2);
-
-    min_x -= m_drawingX;
-    max_x -= m_drawingX;
-
-    if (m_selfBB_x1 > min_x) m_selfBB_x1 = min_x;
-    if (m_selfBB_x2 < max_x) m_selfBB_x2 = max_x;
-
-    m_updatedBBoxX = true;
-
-    // LogDebug("SB Is:  %i %i %i %i", m_selfBB_x1,m_selfBB_y1, m_selfBB_x2, m_selfBB_y2);
-}
-
-void BoundingBox::UpdateSelfBBoxY(int y1, int y2)
-{
-    // LogDebug("SB Was: %i %i %i %i", m_selfBB_x1,m_selfBB_y1, m_selfBB_x2, m_selfBB_y2);
-
-    int min_y = std::min(y1, y2);
-    int max_y = std::max(y1, y2);
-
-    min_y -= m_drawingY;
-    max_y -= m_drawingY;
-
-    if (m_selfBB_y1 > min_y) m_selfBB_y1 = min_y;
-    if (m_selfBB_y2 < max_y) m_selfBB_y2 = max_y;
-
-    m_updatedBBoxY = true;
-
-    // LogDebug("SB Is:  %i %i %i %i", m_selfBB_x1,m_selfBB_y1, m_selfBB_x2, m_selfBB_y2);
-}
-
-void BoundingBox::ResetBoundingBox()
-{
-    m_contentBB_x1 = 0xFFFFFFF;
-    m_contentBB_y1 = 0xFFFFFFF;
-    m_contentBB_x2 = -0xFFFFFFF;
-    m_contentBB_y2 = -0xFFFFFFF;
-    m_selfBB_x1 = 0xFFFFFFF;
-    m_selfBB_y1 = 0xFFFFFFF;
-    m_selfBB_x2 = -0xFFFFFFF;
-    m_selfBB_y2 = -0xFFFFFFF;
-
-    m_updatedBBoxX = false;
-    m_updatedBBoxY = false;
-}
-
-void BoundingBox::SetEmptyBB()
-{
-    m_contentBB_x1 = 0;
-    m_contentBB_y1 = 0;
-    m_contentBB_x2 = 0;
-    m_contentBB_y2 = 0;
-    m_selfBB_x1 = 0;
-    m_selfBB_y1 = 0;
-    m_selfBB_x2 = 0;
-    m_selfBB_y2 = 0;
-
-    m_updatedBBoxX = true;
-    m_updatedBBoxY = true;
-}
-
-bool BoundingBox::HasEmptyBB()
-{
-    return (HasUpdatedBB() && (m_contentBB_x1 == 0) && (m_contentBB_y1 == 0) && (m_contentBB_x2 == 0)
-        && (m_contentBB_y2 == 0));
-}
-
-bool BoundingBox::HasContentBB()
-{
-    return ((m_contentBB_x1 != 0xFFFF) && (m_contentBB_y1 != 0xFFFF) && (m_contentBB_x2 != -0xFFFF)
-        && (m_contentBB_y2 != -0xFFFF));
-}
-
-bool BoundingBox::HasSelfBB()
-{
-    return ((m_selfBB_x1 != 0xFFFF) && (m_selfBB_y1 != 0xFFFF) && (m_selfBB_x2 != -0xFFFF) && (m_selfBB_y2 != -0xFFFF));
-}
-
-bool BoundingBox::HorizontalOverlap(const BoundingBox *other) const
-{
-    assert(other);
-
-    if (m_drawingX + m_contentBB_x2 < other->GetDrawingX() + other->m_contentBB_x1) return false;
-    if (m_drawingX + m_contentBB_x1 > other->GetDrawingX() + other->m_contentBB_x2) return false;
-    return true;
-}
-
-int BoundingBox::CalcVerticalOverlap(const BoundingBox *other) const
-{
-    assert(other);
-    return 0;
-}
 
 //----------------------------------------------------------------------------
 // Object
@@ -221,19 +78,35 @@ Object::Object(const Object &object) : BoundingBox(object)
 {
     ClearChildren();
     ResetBoundingBox(); // It does not make sense to keep the values of the BBox
-    m_parent = NULL;
+
     m_classid = object.m_classid;
-    m_svgclass = object.m_svgclass;
-    m_uuid = object.m_uuid; // for now copy the uuid - to be decided
+    m_parent = NULL;
+    // Flags
+    m_isAttribute = object.m_isAttribute;
     m_isModified = true;
+    m_isReferencObject = object.m_isReferencObject;
+
+    // Also copy attribute classes
+    m_attClasses = object.m_attClasses;
+    m_interfaces = object.m_interfaces;
+    // New uuid
+    this->GenerateUuid();
+    // For now do not copy them
+    // m_unsupported = object.m_unsupported;
+
+    if (!object.CopyChildren()) {
+        return;
+    }
 
     int i;
-    for (i = 0; i < (int)object.m_children.size(); i++) {
+    for (i = 0; i < (int)object.m_children.size(); ++i) {
         Object *current = object.m_children.at(i);
         Object *copy = current->Clone();
-        copy->Modify();
-        copy->SetParent(this);
-        m_children.push_back(copy);
+        if (copy) {
+            copy->Modify();
+            copy->SetParent(this);
+            m_children.push_back(copy);
+        }
     }
 }
 
@@ -243,19 +116,31 @@ Object &Object::operator=(const Object &object)
     if (this != &object) {
         ClearChildren();
         ResetBoundingBox(); // It does not make sense to keep the values of the BBox
-        m_parent = NULL;
-        m_classid = object.m_classid;
-        m_svgclass = object.m_svgclass;
-        m_uuid = object.m_uuid; // for now copy the uuid - to be decided
-        m_isModified = true;
 
-        int i;
-        for (i = 0; i < (int)object.m_children.size(); i++) {
-            Object *current = object.m_children.at(i);
-            Object *copy = current->Clone();
-            copy->Modify();
-            copy->SetParent(this);
-            m_children.push_back(copy);
+        m_classid = object.m_classid;
+        m_parent = NULL;
+        // Flags
+        m_isAttribute = object.m_isAttribute;
+        m_isModified = true;
+        m_isReferencObject = object.m_isReferencObject;
+
+        // Also copy attribute classes
+        m_attClasses = object.m_attClasses;
+        m_interfaces = object.m_interfaces;
+        // New uuid
+        this->GenerateUuid();
+        // For now do now copy them
+        // m_unsupported = object.m_unsupported;
+
+        if (object.CopyChildren()) {
+            int i;
+            for (i = 0; i < (int)object.m_children.size(); ++i) {
+                Object *current = object.m_children.at(i);
+                Object *copy = current->Clone();
+                copy->Modify();
+                copy->SetParent(this);
+                m_children.push_back(copy);
+            }
         }
     }
     return *this;
@@ -268,27 +153,37 @@ Object::~Object()
 
 void Object::Init(std::string classid)
 {
+    m_classid = classid;
     m_parent = NULL;
+    // Flags
     m_isAttribute = false;
     m_isModified = true;
-    m_classid = classid;
+    m_isReferencObject = false;
+
     this->GenerateUuid();
 
     Reset();
 }
 
-ClassId Object::Is() const
+ClassId Object::GetClassId() const
 {
     // we should always have the method overridden
     assert(false);
     return OBJECT;
-};
+}
+
+void Object::SetAsReferenceObject()
+{
+    assert(m_children.empty());
+
+    m_isReferencObject = true;
+}
 
 void Object::Reset()
 {
     ClearChildren();
     ResetBoundingBox();
-};
+}
 
 void Object::RegisterInterface(std::vector<AttClassId> *attClasses, InterfaceId interfaceId)
 {
@@ -298,7 +193,7 @@ void Object::RegisterInterface(std::vector<AttClassId> *attClasses, InterfaceId 
 
 bool Object::IsBoundaryElement()
 {
-    if (this->IsEditorialElement() || (this->Is() == ENDING) || (this->Is() == SECTION)) {
+    if (this->IsEditorialElement() || this->Is(ENDING) || this->Is(SECTION)) {
         BoundaryStartInterface *interface = dynamic_cast<BoundaryStartInterface *>(this);
         assert(interface);
         return (interface->IsBoundary());
@@ -311,12 +206,12 @@ void Object::MoveChildrenFrom(Object *sourceParent, int idx, bool allowTypeChang
     if (this == sourceParent) {
         assert("Object cannot be copied to itself");
     }
-    if (!allowTypeChange && (this->Is() != sourceParent->Is())) {
+    if (!allowTypeChange && (this->GetClassId() != sourceParent->GetClassId())) {
         assert("Object must be of the same type");
     }
 
     int i;
-    for (i = 0; i < (int)sourceParent->m_children.size(); i++) {
+    for (i = 0; i < (int)sourceParent->m_children.size(); ++i) {
         Object *child = sourceParent->Relinquish(i);
         child->SetParent(this);
         if (idx != -1) {
@@ -329,13 +224,25 @@ void Object::MoveChildrenFrom(Object *sourceParent, int idx, bool allowTypeChang
     }
 }
 
+void Object::ReplaceChild(Object *currentChild, Object *replacingChild)
+{
+    assert(this->GetChildIndex(currentChild) != -1);
+    assert(this->GetChildIndex(replacingChild) == -1);
+
+    int idx = this->GetChildIndex(currentChild);
+    currentChild->ResetParent();
+    m_children.at(idx) = replacingChild;
+    replacingChild->SetParent(this);
+    this->Modify();
+}
+
 void Object::MoveItselfTo(Object *targetParent)
 {
     assert(targetParent);
     assert(m_parent);
     assert(m_parent != targetParent);
 
-    Object *relinquishedObject = this->m_parent->Relinquish(this->GetIdx());
+    Object *relinquishedObject = this->GetParent()->Relinquish(this->GetIdx());
     assert(relinquishedObject && (relinquishedObject == this));
     targetParent->AddChild(relinquishedObject);
 }
@@ -343,38 +250,28 @@ void Object::MoveItselfTo(Object *targetParent)
 void Object::SetUuid(std::string uuid)
 {
     m_uuid = uuid;
-};
-
-std::string Object::GetSVGClass(void)
-{
-    return m_svgclass;
 }
 
-void Object::SetSVGClass(const std::string &classcontent)
+void Object::SwapUuid(Object *other)
 {
-    m_svgclass = classcontent;
-}
-
-void Object::AddSVGClass(const std::string &classname)
-{
-    if (HasSVGClass()) {
-        m_svgclass += " ";
-    }
-    m_svgclass += classname;
-}
-
-bool Object::HasSVGClass(void)
-{
-    return !m_svgclass.empty();
+    assert(other);
+    std::string swapUuid = this->GetUuid();
+    this->SetUuid(other->GetUuid());
+    other->SetUuid(swapUuid);
 }
 
 void Object::ClearChildren()
 {
+    if (m_isReferencObject) {
+        m_children.clear();
+        return;
+    }
+
     ArrayOfObjects::iterator iter;
     for (iter = m_children.begin(); iter != m_children.end(); ++iter) {
         // we need to check if this is the parent
         // ownership might have been given up with Relinquish
-        if ((*iter)->m_parent == this) {
+        if ((*iter)->GetParent() == this) {
             delete *iter;
         }
     }
@@ -386,15 +283,35 @@ int Object::GetChildCount(const ClassId classId) const
     return (int)count_if(m_children.begin(), m_children.end(), ObjectComparison(classId));
 }
 
+int Object::GetChildCount(const ClassId classId, int deepth)
+{
+    ArrayOfObjects objects;
+    AttComparison matchClassId(classId);
+    this->FindAllChildByComparison(&objects, &matchClassId);
+    return (int)objects.size();
+}
+
 int Object::GetAttributes(ArrayOfStrAttr *attributes) const
 {
     assert(attributes);
     attributes->clear();
 
+    Att::GetAnalytical(this, attributes);
     Att::GetCmn(this, attributes);
+    Att::GetCmnornaments(this, attributes);
+    Att::GetCritapp(this, attributes);
+    Att::GetGestural(this, attributes);
+    Att::GetExternalsymbols(this, attributes);
+    Att::GetMei(this, attributes);
     Att::GetMensural(this, attributes);
+    Att::GetMidi(this, attributes);
     Att::GetPagebased(this, attributes);
     Att::GetShared(this, attributes);
+    Att::GetVisual(this, attributes);
+
+    for (auto &pair : m_unsupported) {
+        attributes->push_back(std::make_pair(pair.first, pair.second));
+    }
 
     return (int)attributes->size();
 }
@@ -404,7 +321,7 @@ bool Object::HasAttribute(std::string attribute, std::string value) const
     ArrayOfStrAttr attributes;
     this->GetAttributes(&attributes);
     ArrayOfStrAttr::iterator iter;
-    for (iter = attributes.begin(); iter != attributes.end(); iter++) {
+    for (iter = attributes.begin(); iter != attributes.end(); ++iter) {
         if (((*iter).first == attribute) && ((*iter).second == value)) return true;
     }
     return false;
@@ -425,6 +342,30 @@ Object *Object::GetNext()
     return (m_iteratorCurrent == m_iteratorEnd) ? NULL : *m_iteratorCurrent;
 }
 
+Object *Object::GetNext(Object *child, const ClassId classId)
+{
+    ArrayOfObjects::iterator iteratorEnd, iteratorCurrent;
+    iteratorEnd = m_children.end();
+    iteratorCurrent = std::find(m_children.begin(), iteratorEnd, child);
+    if (iteratorCurrent != iteratorEnd) {
+        iteratorCurrent++;
+        iteratorCurrent = std::find_if(iteratorCurrent, iteratorEnd, ObjectComparison(classId));
+    }
+    return (iteratorCurrent == iteratorEnd) ? NULL : *iteratorCurrent;
+}
+    
+Object *Object::GetPrevious(Object *child, const ClassId classId)
+{
+    ArrayOfObjects::reverse_iterator riteratorEnd, riteratorCurrent;
+    riteratorEnd = m_children.rend();
+    riteratorCurrent = std::find(m_children.rbegin(), riteratorEnd, child);
+    if (riteratorCurrent != riteratorEnd) {
+        riteratorCurrent++;
+        riteratorCurrent = std::find_if(riteratorCurrent, riteratorEnd, ObjectComparison(classId));
+    }
+    return (riteratorCurrent == riteratorEnd) ? NULL : *riteratorCurrent;
+}
+
 Object *Object::GetLast() const
 {
     if (m_children.empty()) return NULL;
@@ -441,7 +382,7 @@ int Object::GetIdx() const
 void Object::InsertChild(Object *element, int idx)
 {
     // With this method we require the parent to be set before
-    assert(element->m_parent == this);
+    assert(element->GetParent() == this);
 
     if (idx >= (int)m_children.size()) {
         m_children.push_back(element);
@@ -457,10 +398,26 @@ Object *Object::DetachChild(int idx)
         return NULL;
     }
     Object *child = m_children.at(idx);
-    child->m_parent = NULL;
+    child->ResetParent();
     ArrayOfObjects::iterator iter = m_children.begin();
     m_children.erase(iter + (idx));
     return child;
+}
+
+bool Object::HasChild(Object *child, int deepness) const
+{
+    ArrayOfObjects::const_iterator iter;
+
+    for (iter = m_children.begin(); iter != m_children.end(); ++iter) {
+        if (child == (*iter))
+            return true;
+        else if (deepness == 0)
+            return false;
+        else if ((*iter)->HasChild(child, deepness - 1))
+            return true;
+    }
+
+    return false;
 }
 
 Object *Object::Relinquish(int idx)
@@ -469,7 +426,7 @@ Object *Object::Relinquish(int idx)
         return NULL;
     }
     Object *child = m_children.at(idx);
-    child->m_parent = NULL;
+    child->ResetParent();
     return child;
 }
 
@@ -477,11 +434,11 @@ void Object::ClearRelinquishedChildren()
 {
     ArrayOfObjects::iterator iter;
     for (iter = m_children.begin(); iter != m_children.end();) {
-        if ((*iter)->m_parent != this) {
-            m_children.erase(iter);
+        if ((*iter)->GetParent() != this) {
+            iter = m_children.erase(iter);
         }
         else
-            iter++;
+            ++iter;
     }
 }
 
@@ -496,35 +453,46 @@ Object *Object::FindChildByUuid(std::string uuid, int deepness, bool direction)
 
 Object *Object::FindChildByType(ClassId classId, int deepness, bool direction)
 {
-    AttComparison attComparison(classId);
-    return FindChildByAttComparison(&attComparison, deepness, direction);
+    AttComparison comparison(classId);
+    return FindChildByComparison(&comparison, deepness, direction);
 }
 
-Object *Object::FindChildByAttComparison(AttComparison *attComparison, int deepness, bool direction)
+Object *Object::FindChildByComparison(Comparison *comparison, int deepness, bool direction)
 {
-    Functor findByAttComparison(&Object::FindByAttComparison);
-    FindByAttComparisonParams findByAttComparisonParams(attComparison);
-    this->Process(&findByAttComparison, &findByAttComparisonParams, NULL, NULL, deepness, direction);
-    return findByAttComparisonParams.m_element;
+    Functor findByComparison(&Object::FindByComparison);
+    FindByComparisonParams findByComparisonParams(comparison);
+    this->Process(&findByComparison, &findByComparisonParams, NULL, NULL, deepness, direction);
+    return findByComparisonParams.m_element;
 }
 
-Object *Object::FindChildExtremeByAttComparison(AttComparison *attComparison, int deepness, bool direction)
+Object *Object::FindChildExtremeByComparison(Comparison *comparison, int deepness, bool direction)
 {
-    Functor findExtremeByAttComparison(&Object::FindExtremeByAttComparison);
-    FindExtremeByAttComparisonParams findExtremeByAttComparisonParams(attComparison);
-    this->Process(&findExtremeByAttComparison, &findExtremeByAttComparisonParams, NULL, NULL, deepness, direction);
-    return findExtremeByAttComparisonParams.m_element;
+    Functor findExtremeByComparison(&Object::FindExtremeByComparison);
+    FindExtremeByComparisonParams findExtremeByComparisonParams(comparison);
+    this->Process(&findExtremeByComparison, &findExtremeByComparisonParams, NULL, NULL, deepness, direction);
+    return findExtremeByComparisonParams.m_element;
 }
 
-void Object::FindAllChildByAttComparison(
-    ArrayOfObjects *objects, AttComparison *attComparison, int deepness, bool direction)
+void Object::FindAllChildByComparison(
+    ArrayOfObjects *objects, Comparison *comparison, int deepness, bool direction, bool clear)
 {
     assert(objects);
-    objects->clear();
+    if (clear) objects->clear();
 
-    Functor findAllByAttComparison(&Object::FindAllByAttComparison);
-    FindAllByAttComparisonParams findAllByAttComparisonParams(attComparison, objects);
-    this->Process(&findAllByAttComparison, &findAllByAttComparisonParams, NULL, NULL, deepness, direction);
+    Functor findAllByComparison(&Object::FindAllByComparison);
+    FindAllByComparisonParams findAllByComparisonParams(comparison, objects);
+    this->Process(&findAllByComparison, &findAllByComparisonParams, NULL, NULL, deepness, direction);
+}
+
+void Object::FindAllChildBetween(
+    ArrayOfObjects *objects, Comparison *comparison, Object *start, Object *end, bool clear)
+{
+    assert(objects);
+    if (clear) objects->clear();
+
+    Functor findAllBetween(&Object::FindAllBetween);
+    FindAllBetweenParams findAllBetweenParams(comparison, objects, start, end);
+    this->Process(&findAllBetween, &findAllBetweenParams);
 }
 
 Object *Object::GetChild(int idx) const
@@ -535,14 +503,19 @@ Object *Object::GetChild(int idx) const
     return m_children.at(idx);
 }
 
-void Object::RemoveChildAt(int idx)
+bool Object::DeleteChild(Object *child)
 {
-    if (idx >= (int)m_children.size()) {
-        return;
+    auto it = std::find(m_children.begin(), m_children.end(), child);
+    if (it != m_children.end()) {
+        m_children.erase(it);
+        delete child;
+        this->Modify();
+        return true;
     }
-    delete m_children.at(idx);
-    ArrayOfObjects::iterator iter = m_children.begin();
-    m_children.erase(iter + (idx));
+    else {
+        assert(false);
+        return false;
+    }
 }
 
 void Object::GenerateUuid()
@@ -550,10 +523,9 @@ void Object::GenerateUuid()
     int nr = std::rand();
     char str[17];
     // I do not want to use a stream for doing this!
-    snprintf(str, 16, "%016d", nr);
+    snprintf(str, 17, "%016d", nr);
 
     m_uuid = m_classid + std::string(str);
-    std::transform(m_uuid.begin(), m_uuid.end(), m_uuid.begin(), ::tolower);
 }
 
 void Object::ResetUuid()
@@ -581,14 +553,47 @@ void Object::SetParent(Object *parent)
 void Object::AddChild(Object *child)
 {
     // This should never happen because the method should be overridden
+    LogDebug("Parent %s - Child %s", this->GetClassName().c_str(), child->GetClassName().c_str());
     assert(false);
+}
+
+int Object::GetDrawingX() const
+{
+    assert(m_parent);
+    return m_parent->GetDrawingX();
+}
+
+int Object::GetDrawingY() const
+{
+    assert(m_parent);
+    return m_parent->GetDrawingY();
+}
+
+void Object::ResetCachedDrawingX() const
+{
+    // if (m_cachedDrawingX == VRV_UNSET) return;
+    m_cachedDrawingX = VRV_UNSET;
+    ArrayOfObjects::const_iterator iter;
+    for (iter = m_children.begin(); iter != m_children.end(); ++iter) {
+        (*iter)->ResetCachedDrawingX();
+    }
+}
+
+void Object::ResetCachedDrawingY() const
+{
+    // if (m_cachedDrawingY == VRV_UNSET) return;
+    m_cachedDrawingY = VRV_UNSET;
+    ArrayOfObjects::const_iterator iter;
+    for (iter = m_children.begin(); iter != m_children.end(); ++iter) {
+        (*iter)->ResetCachedDrawingY();
+    }
 }
 
 int Object::GetChildIndex(const Object *child)
 {
     ArrayOfObjects::iterator iter;
     int i;
-    for (iter = m_children.begin(), i = 0; iter != m_children.end(); ++iter, i++) {
+    for (iter = m_children.begin(), i = 0; iter != m_children.end(); ++iter, ++i) {
         if (child == *iter) {
             return i;
         }
@@ -599,7 +604,7 @@ int Object::GetChildIndex(const Object *child)
 void Object::Modify(bool modified)
 {
     // if we have a parent and a new modification, propagate it
-    if (m_parent && !m_isModified && modified) {
+    if (m_parent && modified) {
         m_parent->Modify();
     }
     m_isModified = modified;
@@ -618,11 +623,25 @@ Object *Object::GetFirstParent(const ClassId classId, int maxDepth) const
         return NULL;
     }
 
-    if (m_parent->Is() == classId) {
+    if (m_parent->GetClassId() == classId) {
         return m_parent;
     }
     else {
         return (m_parent->GetFirstParent(classId, maxDepth - 1));
+    }
+}
+
+Object *Object::GetFirstParentInRange(const ClassId classIdMin, const ClassId classIdMax, int maxDepth) const
+{
+    if ((maxDepth == 0) || !m_parent) {
+        return NULL;
+    }
+
+    if ((m_parent->GetClassId() > classIdMin) && (m_parent->GetClassId() < classIdMax)) {
+        return m_parent;
+    }
+    else {
+        return (m_parent->GetFirstParentInRange(classIdMin, classIdMax, maxDepth - 1));
     }
 }
 
@@ -632,7 +651,7 @@ Object *Object::GetLastParentNot(const ClassId classId, int maxDepth)
         return NULL;
     }
 
-    if (m_parent->Is() == classId) {
+    if (m_parent->GetClassId() == classId) {
         return this;
     }
     else {
@@ -640,19 +659,28 @@ Object *Object::GetLastParentNot(const ClassId classId, int maxDepth)
     }
 }
 
-void Object::Process(Functor *functor, FunctorParams *functorParams, Functor *endFunctor,
-    ArrayOfAttComparisons *filters, int deepness, bool direction)
+void Object::Process(Functor *functor, FunctorParams *functorParams, Functor *endFunctor, ArrayOfComparisons *filters,
+    int deepness, bool direction)
 {
     if (functor->m_returnCode == FUNCTOR_STOP) {
         return;
     }
 
     bool processChildren = true;
-    if (functor->m_visibleOnly && this->IsEditorialElement()) {
-        EditorialElement *editorialElement = dynamic_cast<EditorialElement *>(this);
-        assert(editorialElement);
-        if (editorialElement->m_visibility == Hidden) {
-            processChildren = false;
+    if (functor->m_visibleOnly) {
+        if (this->IsEditorialElement()) {
+            EditorialElement *editorialElement = dynamic_cast<EditorialElement *>(this);
+            assert(editorialElement);
+            if (editorialElement->m_visibility == Hidden) {
+                processChildren = false;
+            }
+        }
+        else if (this->Is(MDIV)) {
+            Mdiv *mdiv = dynamic_cast<Mdiv *>(this);
+            assert(mdiv);
+            if (mdiv->m_visibility == Hidden) {
+                processChildren = false;
+            }
         }
     }
 
@@ -687,30 +715,29 @@ void Object::Process(Functor *functor, FunctorParams *functorParams, Functor *en
         }
         for (iter = children->begin(); iter != children->end(); ++iter) {
             if (filters && !filters->empty()) {
-                bool hasAttComparison = false;
+                bool hasComparison = false;
                 // first we look if there is a comparison object for the object type (e.g., a Staff)
-                ArrayOfAttComparisons::iterator attComparisonIter;
-                for (attComparisonIter = filters->begin(); attComparisonIter != filters->end(); attComparisonIter++) {
-                    // if yes, we will use it (*attComparisonIter) for evaluating if the object matches
+                ArrayOfComparisons::iterator comparisonIter;
+                for (comparisonIter = filters->begin(); comparisonIter != filters->end(); ++comparisonIter) {
+                    // if yes, we will use it (*comparisonIter) for evaluating if the object matches
                     // the attribute (see below)
                     Object *o = *iter;
-                    if (o->Is() == (*attComparisonIter)->GetType()) {
-                        hasAttComparison = true;
+                    AttComparison *attComparison = dynamic_cast<AttComparison *>(*comparisonIter);
+                    assert(attComparison);
+                    if (o->GetClassId() == attComparison->GetType()) {
+                        hasComparison = true;
                         break;
                     }
                 }
-                if (hasAttComparison) {
-                    // use the operator of the AttComparison object to evaluate the attribute
-                    if ((**attComparisonIter)(*iter)) {
+                if (hasComparison) {
+                    // use the operator of the Comparison object to evaluate the attribute
+                    if ((**comparisonIter)(*iter)) {
                         // the attribute value matches, process the object
                         // LogDebug("%s ", (*iter)->GetClassName().c_str());
                         (*iter)->Process(functor, functorParams, endFunctor, filters, deepness, direction);
-                        break;
                     }
-                    else {
-                        // the attribute value does not match, skip this child
-                        continue;
-                    }
+                    // continue to the next child
+                    continue;
                 }
             }
             // we will end here if there is no filter at all or for the current child type
@@ -768,7 +795,7 @@ void ObjectListInterface::ResetList(Object *node)
     this->FilterList(&m_list);
 }
 
-ListOfObjects *ObjectListInterface::GetList(Object *node)
+const ListOfObjects *ObjectListInterface::GetList(Object *node)
 {
     ResetList(node);
     return &m_list;
@@ -778,7 +805,7 @@ int ObjectListInterface::GetListIndex(const Object *listElement)
 {
     ListOfObjects::iterator iter;
     int i;
-    for (iter = m_list.begin(), i = 0; iter != m_list.end(); ++iter, i++) {
+    for (iter = m_list.begin(), i = 0; iter != m_list.end(); ++iter, ++i) {
         if (listElement == *iter) {
             return i;
         }
@@ -789,7 +816,9 @@ int ObjectListInterface::GetListIndex(const Object *listElement)
 Object *ObjectListInterface::GetListFirst(const Object *startFrom, const ClassId classId)
 {
     ListOfObjects::iterator it = m_list.begin();
-    std::advance(it, GetListIndex(startFrom));
+    int idx = GetListIndex(startFrom);
+    if (idx == -1) return NULL;
+    std::advance(it, idx);
     it = std::find_if(it, m_list.end(), ObjectComparison(classId));
     return (it == m_list.end()) ? NULL : *it;
 }
@@ -797,7 +826,9 @@ Object *ObjectListInterface::GetListFirst(const Object *startFrom, const ClassId
 Object *ObjectListInterface::GetListFirstBackward(Object *startFrom, const ClassId classId)
 {
     ListOfObjects::iterator it = m_list.begin();
-    std::advance(it, GetListIndex(startFrom));
+    int idx = GetListIndex(startFrom);
+    if (idx == -1) return NULL;
+    std::advance(it, idx);
     ListOfObjects::reverse_iterator rit(it);
     rit = std::find_if(rit, m_list.rend(), ObjectComparison(classId));
     return (rit == m_list.rend()) ? NULL : *rit;
@@ -807,7 +838,7 @@ Object *ObjectListInterface::GetListPrevious(Object *listElement)
 {
     ListOfObjects::iterator iter;
     int i;
-    for (iter = m_list.begin(), i = 0; iter != m_list.end(); ++iter, i++) {
+    for (iter = m_list.begin(), i = 0; iter != m_list.end(); ++iter, ++i) {
         if (listElement == *iter) {
             if (i > 0) {
                 return *(--iter);
@@ -824,7 +855,7 @@ Object *ObjectListInterface::GetListNext(Object *listElement)
 {
     ListOfObjects::reverse_iterator iter;
     int i;
-    for (iter = m_list.rbegin(), i = 0; iter != m_list.rend(); ++iter, i++) {
+    for (iter = m_list.rbegin(), i = 0; iter != m_list.rend(); ++iter, ++i) {
         if (listElement == *iter) {
             if (i > 0) {
                 return *(--iter);
@@ -845,8 +876,8 @@ std::wstring TextListInterface::GetText(Object *node)
 {
     // alternatively we could cache the concatString in the interface and instantiate it in FilterList
     std::wstring concatText;
-    ListOfObjects *childList = this->GetList(node); // make sure it's initialized
-    for (ListOfObjects::iterator it = childList->begin(); it != childList->end(); it++) {
+    const ListOfObjects *childList = this->GetList(node); // make sure it's initialized
+    for (ListOfObjects::const_iterator it = childList->begin(); it != childList->end(); ++it) {
         Text *text = dynamic_cast<Text *>(*it);
         assert(text);
         concatText += text->GetText();
@@ -857,14 +888,13 @@ std::wstring TextListInterface::GetText(Object *node)
 void TextListInterface::FilterList(ListOfObjects *childList)
 {
     ListOfObjects::iterator iter = childList->begin();
-
     while (iter != childList->end()) {
-        if (((*iter)->Is() != TEXT)) {
+        if (!(*iter)->Is(TEXT)) {
             // remove anything that is not an LayerElement (e.g. Verse, Syl, etc)
             iter = childList->erase(iter);
             continue;
         }
-        iter++;
+        ++iter;
     }
 }
 
@@ -902,6 +932,7 @@ int Object::AddLayerElementToFlatList(FunctorParams *functorParams)
     assert(params);
 
     params->m_flatList->push_back(this);
+    // LogDebug("List %d", params->m_flatList->size());
 
     return FUNCTOR_CONTINUE;
 }
@@ -925,9 +956,9 @@ int Object::FindByUuid(FunctorParams *functorParams)
     return FUNCTOR_CONTINUE;
 }
 
-int Object::FindByAttComparison(FunctorParams *functorParams)
+int Object::FindByComparison(FunctorParams *functorParams)
 {
-    FindByAttComparisonParams *params = dynamic_cast<FindByAttComparisonParams *>(functorParams);
+    FindByComparisonParams *params = dynamic_cast<FindByComparisonParams *>(functorParams);
     assert(params);
 
     if (params->m_element) {
@@ -935,39 +966,139 @@ int Object::FindByAttComparison(FunctorParams *functorParams)
         return FUNCTOR_STOP;
     }
 
-    // evaluate by applying the AttComparison operator()
-    if ((*params->m_attComparison)(this)) {
+    // evaluate by applying the Comparison operator()
+    if ((*params->m_comparison)(this)) {
         params->m_element = this;
         // LogDebug("Found it!");
         return FUNCTOR_STOP;
     }
-    // LogDebug("Still looking for the object matching the AttComparison...");
+    // LogDebug("Still looking for the object matching the Comparison...");
     return FUNCTOR_CONTINUE;
 }
 
-int Object::FindExtremeByAttComparison(FunctorParams *functorParams)
+int Object::FindExtremeByComparison(FunctorParams *functorParams)
 {
-    FindExtremeByAttComparisonParams *params = dynamic_cast<FindExtremeByAttComparisonParams *>(functorParams);
+    FindExtremeByComparisonParams *params = dynamic_cast<FindExtremeByComparisonParams *>(functorParams);
     assert(params);
 
-    // evaluate by applying the AttComparison operator()
-    if ((*params->m_attComparison)(this)) {
+    // evaluate by applying the Comparison operator()
+    if ((*params->m_comparison)(this)) {
         params->m_element = this;
     }
     // continue until the end
     return FUNCTOR_CONTINUE;
 }
 
-int Object::FindAllByAttComparison(FunctorParams *functorParams)
+int Object::FindAllByComparison(FunctorParams *functorParams)
 {
-    FindAllByAttComparisonParams *params = dynamic_cast<FindAllByAttComparisonParams *>(functorParams);
+    FindAllByComparisonParams *params = dynamic_cast<FindAllByComparisonParams *>(functorParams);
     assert(params);
 
-    // evaluate by applying the AttComparison operator()
-    if ((*params->m_attComparison)(this)) {
+    // evaluate by applying the Comparison operator()
+    if ((*params->m_comparison)(this)) {
         params->m_elements->push_back(this);
     }
     // continue until the end
+    return FUNCTOR_CONTINUE;
+}
+
+int Object::FindAllBetween(FunctorParams *functorParams)
+{
+    FindAllBetweenParams *params = dynamic_cast<FindAllBetweenParams *>(functorParams);
+    assert(params);
+
+    // We are reaching the start of the range
+    if (params->m_start == this) {
+        // Setting the start to NULL indicates that we are in the range
+        params->m_start = NULL;
+    }
+    // We have not reached the start yet
+    else if (params->m_start) {
+        return FUNCTOR_CONTINUE;
+    }
+
+    // evaluate by applying the Comparison operator()
+    if ((*params->m_comparison)(this)) {
+        params->m_elements->push_back(this);
+    }
+
+    // We have reached the end of the range
+    if (params->m_end == this) {
+        return FUNCTOR_STOP;
+    }
+
+    // continue until the end
+    return FUNCTOR_CONTINUE;
+}
+
+int Object::ConvertToCastOffMensural(FunctorParams *functorParams)
+{
+    ConvertToCastOffMensuralParams *params = dynamic_cast<ConvertToCastOffMensuralParams *>(functorParams);
+    assert(params);
+
+    assert(m_parent);
+    // We want to move only the children of the layer of any type (notes, editorial elements, etc)
+    if (this->m_parent->Is(LAYER)) {
+        assert(params->m_targetLayer);
+        this->MoveItselfTo(params->m_targetLayer);
+        // Do not precess children because we move the full sub-tree
+        return FUNCTOR_SIBLINGS;
+    }
+
+    return FUNCTOR_CONTINUE;
+}
+
+int Object::PrepareLinking(FunctorParams *functorParams)
+{
+    PrepareLinkingParams *params = dynamic_cast<PrepareLinkingParams *>(functorParams);
+    assert(params);
+
+    if (params->m_fillList && this->HasInterface(INTERFACE_LINKING)) {
+        LinkingInterface *interface = this->GetLinkingInterface();
+        assert(interface);
+        interface->InterfacePrepareLinking(functorParams, this);
+    }
+
+    // @next
+    std::string uuid = this->GetUuid();
+    auto i = std::find_if(params->m_nextUuidPairs.begin(), params->m_nextUuidPairs.end(),
+        [uuid](std::pair<LinkingInterface *, std::string> pair) { return (pair.second == uuid); });
+    if (i != params->m_nextUuidPairs.end()) {
+        i->first->SetNextLink(this);
+        params->m_nextUuidPairs.erase(i);
+    }
+    
+    // @sameas
+    std::string sameas = this->GetUuid();
+    auto j = std::find_if(params->m_sameasUuidPairs.begin(), params->m_sameasUuidPairs.end(),
+                          [uuid](std::pair<LinkingInterface *, std::string> pair) { return (pair.second == uuid); });
+    if (j != params->m_sameasUuidPairs.end()) {
+        j->first->SetSameasLink(this);
+        params->m_sameasUuidPairs.erase(j);
+    }
+
+    return FUNCTOR_CONTINUE;
+}
+
+int Object::PreparePlist(FunctorParams *functorParams)
+{
+    PreparePlistParams *params = dynamic_cast<PreparePlistParams *>(functorParams);
+    assert(params);
+
+    if (params->m_fillList && this->HasInterface(INTERFACE_PLIST)) {
+        PlistInterface *interface = this->GetPlistInterface();
+        assert(interface);
+        return interface->InterfacePreparePlist(functorParams, this);
+    }
+
+    std::string uuid = this->GetUuid();
+    auto i = std::find_if(params->m_interfaceUuidPairs.begin(), params->m_interfaceUuidPairs.end(),
+        [uuid](std::pair<PlistInterface *, std::string> pair) { return (pair.second == uuid); });
+    if (i != params->m_interfaceUuidPairs.end()) {
+        i->first->SetRef(this);
+        params->m_interfaceUuidPairs.erase(i);
+    }
+
     return FUNCTOR_CONTINUE;
 }
 
@@ -979,7 +1110,7 @@ int Object::SetCautionaryScoreDef(FunctorParams *functorParams)
     assert(params->m_currentScoreDef);
 
     // starting a new staff
-    if (this->Is() == STAFF) {
+    if (this->Is(STAFF)) {
         Staff *staff = dynamic_cast<Staff *>(this);
         assert(staff);
         params->m_currentStaffDef = params->m_currentScoreDef->GetStaffDef(staff->GetN());
@@ -987,7 +1118,7 @@ int Object::SetCautionaryScoreDef(FunctorParams *functorParams)
     }
 
     // starting a new layer
-    if (this->Is() == LAYER) {
+    if (this->Is(LAYER)) {
         Layer *layer = dynamic_cast<Layer *>(this);
         assert(layer);
         layer->SetDrawingCautionValues(params->m_currentStaffDef);
@@ -1005,10 +1136,10 @@ int Object::SetCurrentScoreDef(FunctorParams *functorParams)
     assert(params->m_upcomingScoreDef);
 
     // starting a new page
-    if (this->Is() == PAGE) {
+    if (this->Is(PAGE)) {
         Page *page = dynamic_cast<Page *>(this);
         assert(page);
-        if (page->m_parent->GetChildIndex(page) == 0) {
+        if (page->GetParent()->GetChildIndex(page) == 0) {
             params->m_upcomingScoreDef->SetRedrawFlags(true, true, true, true, false);
             params->m_drawLabels = true;
         }
@@ -1017,7 +1148,7 @@ int Object::SetCurrentScoreDef(FunctorParams *functorParams)
     }
 
     // starting a new system
-    if (this->Is() == SYSTEM) {
+    if (this->Is(SYSTEM)) {
         System *system = dynamic_cast<System *>(this);
         assert(system);
         // This is the only thing we do for now - we need to wait until we reach the first measure
@@ -1026,7 +1157,7 @@ int Object::SetCurrentScoreDef(FunctorParams *functorParams)
     }
 
     // starting a new measure
-    if (this->Is() == MEASURE) {
+    if (this->Is(MEASURE)) {
         Measure *measure = dynamic_cast<Measure *>(this);
         assert(measure);
         bool systemBreak = false;
@@ -1064,7 +1195,7 @@ int Object::SetCurrentScoreDef(FunctorParams *functorParams)
     }
 
     // starting a new scoreDef
-    if (this->Is() == SCOREDEF) {
+    if (this->Is(SCOREDEF)) {
         ScoreDef *scoreDef = dynamic_cast<ScoreDef *>(this);
         assert(scoreDef);
         // Replace the current scoreDef with the new one, including its content (staffDef) - this also sets
@@ -1074,43 +1205,37 @@ int Object::SetCurrentScoreDef(FunctorParams *functorParams)
     }
 
     // starting a new staffDef
-    if (this->Is() == STAFFDEF) {
+    if (this->Is(STAFFDEF)) {
         StaffDef *staffDef = dynamic_cast<StaffDef *>(this);
         assert(staffDef);
         params->m_upcomingScoreDef->ReplaceDrawingValues(staffDef);
     }
 
     // starting a new staff
-    if (this->Is() == STAFF) {
+    if (this->Is(STAFF)) {
         Staff *staff = dynamic_cast<Staff *>(this);
         assert(staff);
         params->m_currentStaffDef = params->m_currentScoreDef->GetStaffDef(staff->GetN());
         assert(staff->m_drawingStaffDef == NULL);
         staff->m_drawingStaffDef = params->m_currentStaffDef;
+        staff->m_drawingLines = params->m_currentStaffDef->GetLines();
+        staff->m_drawingNotationType = params->m_currentStaffDef->GetNotationtype();
+        if (params->m_currentStaffDef->HasScale()) {
+            staff->m_drawingStaffSize = params->m_currentStaffDef->GetScale();
+        }
         return FUNCTOR_CONTINUE;
     }
 
     // starting a new layer
-    if (this->Is() == LAYER) {
+    if (this->Is(LAYER)) {
         Layer *layer = dynamic_cast<Layer *>(this);
         assert(layer);
-        // setting the layer stem direction. Alternatively, this could be done in
-        // View::DrawLayer. If this (and other things) is kept here, renaming the method to something
-        // more generic (PrepareDrawing?) might be a good idea...
-        if (layer->m_parent->GetChildCount() > 1) {
-            if (layer->m_parent->GetChildIndex(layer) == 0) {
-                layer->SetDrawingStemDir(STEMDIRECTION_up);
-            }
-            else {
-                layer->SetDrawingStemDir(STEMDIRECTION_down);
-            }
-        }
-        layer->SetDrawingStaffDefValues(params->m_currentStaffDef);
+        if (params->m_doc->GetType() != Transcription) layer->SetDrawingStaffDefValues(params->m_currentStaffDef);
         return FUNCTOR_CONTINUE;
     }
 
     // starting a new clef
-    if (this->Is() == CLEF) {
+    if (this->Is(CLEF)) {
         Clef *clef = dynamic_cast<Clef *>(this);
         assert(clef);
         assert(params->m_currentStaffDef);
@@ -1122,7 +1247,7 @@ int Object::SetCurrentScoreDef(FunctorParams *functorParams)
     }
 
     // starting a new keysig
-    if (this->Is() == KEYSIG) {
+    if (this->Is(KEYSIG)) {
         KeySig *keysig = dynamic_cast<KeySig *>(this);
         assert(keysig);
         assert(params->m_currentStaffDef);
@@ -1136,178 +1261,20 @@ int Object::SetCurrentScoreDef(FunctorParams *functorParams)
     return FUNCTOR_CONTINUE;
 }
 
-int Object::SetBoundingBoxGraceXShift(FunctorParams *functorParams)
+int Object::GetAlignmentLeftRight(FunctorParams *functorParams)
 {
-    SetBoundingBoxGraceXShiftParams *params = dynamic_cast<SetBoundingBoxGraceXShiftParams *>(functorParams);
+    GetAlignmentLeftRightParams *params = dynamic_cast<GetAlignmentLeftRightParams *>(functorParams);
     assert(params);
 
-    // starting new layer
-    if (this->Is() == LAYER) {
-        params->m_graceMinPos = 0;
-        return FUNCTOR_CONTINUE;
-    }
+    if (!this->IsLayerElement()) return FUNCTOR_CONTINUE;
 
-    if (this->Is() != NOTE) {
-        return FUNCTOR_CONTINUE;
-    }
+    if (!this->HasSelfBB() || this->HasEmptyBB()) return FUNCTOR_CONTINUE;
 
-    Note *note = dynamic_cast<Note *>(this);
-    assert(note);
+    int refLeft = this->GetSelfLeft();
+    if (params->m_minLeft > refLeft) params->m_minLeft = refLeft;
 
-    if (!note->IsGraceNote() || note->IsChordTone()) {
-        params->m_graceMinPos = 0;
-        return FUNCTOR_CONTINUE;
-    }
-
-    // we should have processed aligned before
-    assert(note->GetGraceAlignment());
-
-    // the negative offset is the part of the bounding box that overflows on the left
-    // |____x_____|
-    //  ---- = negative offset
-    int negative_offset = -(note->m_contentBB_x1)
-        + (params->m_doc->GetLeftMargin(NOTE) * params->m_doc->GetDrawingUnit(100) / PARAM_DENOMINATOR);
-
-    if (params->m_graceMinPos > 0) {
-        //(*minPos) += (doc->GetLeftMargin(&typeid(*note)) * doc->GetDrawingUnit(100) / PARAM_DENOMINATOR);
-    }
-
-    // this should never happen (but can with glyphs not exactly registered at position x=0 in the SMuFL font used)
-    if (negative_offset < 0) negative_offset = 0;
-
-    // check if the element overlaps with the preceeding one given by (*minPos)
-    int overlap = params->m_graceMinPos - note->GetGraceAlignment()->GetXRel() + negative_offset;
-
-    if ((note->GetGraceAlignment()->GetXRel() - negative_offset) < params->m_graceMinPos) {
-        note->GetGraceAlignment()->SetXShift(overlap);
-    }
-
-    // the next minimal position if given by the right side of the bounding box + the spacing of the element
-    params->m_graceMinPos = note->GetGraceAlignment()->GetXRel() + note->m_contentBB_x2
-        + params->m_doc->GetRightMargin(NOTE) * params->m_doc->GetDrawingUnit(100) / PARAM_DENOMINATOR;
-    //(*minPos) = note->GetGraceAlignment()->GetXRel() + note->m_contentBB_x2;
-    // note->GetGraceAlignment()->SetMaxWidth(note->m_contentBB_x2 + doc->GetRightMargin(&typeid(*note)) *
-    // doc->GetDrawingUnit(100) /
-    // PARAM_DENOMINATOR);
-    note->GetGraceAlignment()->SetMaxWidth(note->m_contentBB_x2);
-
-    return FUNCTOR_CONTINUE;
-}
-
-int Object::SetBoundingBoxXShift(FunctorParams *functorParams)
-{
-    SetBoundingBoxXShiftParams *params = dynamic_cast<SetBoundingBoxXShiftParams *>(functorParams);
-    assert(params);
-
-    // starting new layer
-    if (this->Is() == LAYER) {
-        params->m_minPos = params->m_layerMinPos;
-        return FUNCTOR_CONTINUE;
-    }
-
-    if (!this->IsLayerElement()) {
-        return FUNCTOR_CONTINUE;
-    }
-
-    LayerElement *current = dynamic_cast<LayerElement *>(this);
-    assert(current);
-
-    // we should have processed aligned before
-    assert(current->GetAlignment());
-
-    if (!current->HasToBeAligned()) {
-        // if nothing to do with this type of element
-        return FUNCTOR_CONTINUE;
-    }
-
-    if (!current->HasUpdatedBB()) {
-        // if nothing was drawn, do not take it into account
-        LogWarning("Nothing drawn for '%s' '%s'", this->GetClassName().c_str(), this->GetUuid().c_str());
-        /* Comment out following assert() for now: DrawCustos() doesn't draw anything, so it
-            triggers this error.
-        assert(false); // quite drastic but this should never happen. If nothing has to be drawn
-        				// then the BB should be set to empty with  Object::SetEmptyBB()
-         */
-        return FUNCTOR_CONTINUE;
-    }
-
-    if ((current->Is() == NOTE) && current->GetFirstParent(CHORD, MAX_CHORD_DEPTH)) {
-        return FUNCTOR_CONTINUE;
-    }
-
-    if ((current->Is() == ACCID) && current->GetFirstParent(NOTE, MAX_ACCID_DEPTH)) {
-        return FUNCTOR_CONTINUE;
-    }
-
-    //LogDebug("SetBoundingBoxXShift: '%s' '%s'", this->GetClassName().c_str(), this->GetUuid().c_str());
-    // The negative offset is the part of the bounding box that overflows on the left
-    // |____x_____|
-    //  ---- = negative offset
-    int negative_offset = -(current->m_contentBB_x1);
-
-    // Increase negative_offset by the symbol type's left margin, unless it's a note
-    // that's part of a ligature.
-    if (!current->IsGraceNote() && !current->IsInLigature())
-        negative_offset
-            += (params->m_doc->GetLeftMargin(current->Is()) * params->m_doc->GetDrawingUnit(100) / PARAM_DENOMINATOR);
-
-    // This should never happen but can with glyphs not exactly registered at x=0 in the SMuFL font used
-    if (negative_offset < 0) negative_offset = 0;
-
-    // with a grace note, also take into account the full width of the group given by the GraceAligner
-    if (current->GetAlignment()->HasGraceAligner()) {
-        negative_offset += current->GetAlignment()->GetGraceAligner()->GetWidth()
-            + (params->m_doc->GetLeftMargin(NOTE) * params->m_doc->GetDrawingUnit(100) / PARAM_DENOMINATOR);
-    }
-
-    int currentX = current->GetAlignment()->GetXRel();
-    // with grace note, take into account the position of the note in the grace group
-    if (current->IsGraceNote()) {
-        Note *note = dynamic_cast<Note *>(current);
-        currentX += note->GetGraceAlignment()->GetXRel();
-    }
-
-    // check if the element overlaps with the preceeding one given by (*minPos)
-    int overlap = params->m_minPos - currentX + negative_offset;
-
-    if ((currentX - negative_offset) < params->m_minPos) {
-        current->GetAlignment()->SetXShift(overlap);
-    }
-
-    // do not adjust the min pos and the max width since this is already handled by
-    // the GraceAligner
-    if (current->IsGraceNote()) {
-        params->m_minPos = current->GetAlignment()->GetXRel();
-        current->GetAlignment()->SetMaxWidth(0);
-        return FUNCTOR_CONTINUE;
-    }
-
-    // the next minimal position is given by the right side of the bounding box + the spacing of the element
-    int width = current->m_contentBB_x2;
-
-    // Move to right by the symbol type's right margin, unless it's a note that's
-    // part of a ligature.
-    if (!current->HasEmptyBB() && !current->IsInLigature())
-        width += params->m_doc->GetRightMargin(current->Is()) * params->m_doc->GetDrawingUnit(100) / PARAM_DENOMINATOR;
-    params->m_minPos = current->GetAlignment()->GetXRel() + width;
-    current->GetAlignment()->SetMaxWidth(width);
-
-    return FUNCTOR_CONTINUE;
-}
-
-int Object::SetBoundingBoxXShiftEnd(FunctorParams *functorParams)
-{
-    SetBoundingBoxXShiftParams *params = dynamic_cast<SetBoundingBoxXShiftParams *>(functorParams);
-    assert(params);
-
-    // ending a layer
-    if (this->Is() == LAYER) {
-        // mininimum position is the with the layer
-        // we keep it if it's higher than what we had so far
-        // this will be used for shifting the right barLine
-        params->m_measureWidth = std::max(params->m_measureWidth, params->m_minPos);
-        return FUNCTOR_CONTINUE;
-    }
+    int refRight = this->GetSelfRight();
+    if (params->m_maxRight < refRight) params->m_maxRight = refRight;
 
     return FUNCTOR_CONTINUE;
 }
@@ -1318,25 +1285,28 @@ int Object::SetOverflowBBoxes(FunctorParams *functorParams)
     assert(params);
 
     // starting a new staff
-    if (this->Is() == STAFF) {
+    if (this->Is(STAFF)) {
         Staff *currentStaff = dynamic_cast<Staff *>(this);
         assert(currentStaff);
-        assert(currentStaff->GetAlignment());
+
+        if (!currentStaff->DrawingIsVisible()) {
+            return FUNCTOR_SIBLINGS;
+        }
 
         params->m_staffAlignment = currentStaff->GetAlignment();
-
-        // currentStaff->GetAlignment()->SetMaxHeight(currentStaff->m_contentBB_y1);
-
         return FUNCTOR_CONTINUE;
     }
 
     // starting new layer
-    if (this->Is() == LAYER) {
+    if (this->Is(LAYER)) {
         Layer *currentLayer = dynamic_cast<Layer *>(this);
         assert(currentLayer);
         // set scoreDef attr
         if (currentLayer->GetStaffDefClef()) {
-            currentLayer->GetStaffDefClef()->SetOverflowBBoxes(params);
+            // Ignore system scoreDef clefs - clefs changes withing a staff are still taken into account
+            if (currentLayer->GetStaffDefClef()->GetScoreDefRole() != SCOREDEF_SYSTEM) {
+                currentLayer->GetStaffDefClef()->SetOverflowBBoxes(params);
+            }
         }
         if (currentLayer->GetStaffDefKeySig()) {
             currentLayer->GetStaffDefKeySig()->SetOverflowBBoxes(params);
@@ -1362,47 +1332,55 @@ int Object::SetOverflowBBoxes(FunctorParams *functorParams)
         return FUNCTOR_CONTINUE;
     }
 
-    if (this->Is() == SYL) {
+    if (this->Is(FB) || this->Is(FIGURE)) {
+        return FUNCTOR_CONTINUE;
+    }
+
+    if (this->Is(SYL)) {
         // We don't want to add the syl to the overflow since lyrics require a full line anyway
         return FUNCTOR_CONTINUE;
     }
 
-    LayerElement *current = dynamic_cast<LayerElement *>(this);
-    assert(current);
-
-    if (!current->HasToBeAligned()) {
-        // if nothing to do with this type of element
-        // return FUNCTOR_CONTINUE;
-    }
-
-    if (!current->HasUpdatedBB()) {
+    if (!this->HasSelfBB()) {
         // if nothing was drawn, do not take it into account
-        // assert(false); // quite drastic but this should never happen. If nothing has to be drawn
-        // LogDebug("Un-updated bounding box for '%s' '%s'", current->GetClassName().c_str(),
-        // current->GetUuid().c_str());
-        // then the BB should be set to empty with  Object::SetEmptyBB()
         return FUNCTOR_CONTINUE;
     }
 
-    int staffSize = params->m_staffAlignment->GetStaffSize();
+    assert(params->m_staffAlignment);
 
-    int overflowAbove = params->m_staffAlignment->CalcOverflowAbove(current);
-    if (overflowAbove > params->m_doc->GetDrawingStaffLineWidth(staffSize) / 2) {
+    LayerElement *current = dynamic_cast<LayerElement *>(this);
+    assert(current);
+
+    bool skipAbove = false;
+    bool skipBelow = false;
+    Chord *chord = dynamic_cast<Chord *>(this->GetFirstParent(CHORD, MAX_CHORD_DEPTH));
+    if (chord && params->m_staffAlignment) {
+        chord->GetCrossStaffOverflows(current, params->m_staffAlignment, skipAbove, skipBelow);
+    }
+
+    StaffAlignment *alignment = params->m_staffAlignment;
+    Layer *crossLayer = NULL;
+    Staff *crossStaff = current->GetCrossStaff(crossLayer);
+    if (crossStaff && crossStaff->GetAlignment()) {
+        alignment = crossStaff->GetAlignment();
+    }
+
+    int staffSize = alignment->GetStaffSize();
+
+    int overflowAbove = alignment->CalcOverflowAbove(current);
+    if (!skipAbove && (overflowAbove > params->m_doc->GetDrawingStaffLineWidth(staffSize) / 2)) {
         // LogMessage("%s top overflow: %d", current->GetUuid().c_str(), overflowAbove);
-        params->m_staffAlignment->SetOverflowAbove(overflowAbove);
-        params->m_staffAlignment->AddBBoxAbove(current);
+        alignment->SetOverflowAbove(overflowAbove);
+        alignment->AddBBoxAbove(current);
     }
 
-    int overflowBelow = params->m_staffAlignment->CalcOverflowBelow(current);
-    if (overflowBelow > params->m_doc->GetDrawingStaffLineWidth(staffSize) / 2) {
+    int overflowBelow = alignment->CalcOverflowBelow(current);
+    if (!skipBelow && (overflowBelow > params->m_doc->GetDrawingStaffLineWidth(staffSize) / 2)) {
         // LogMessage("%s bottom overflow: %d", current->GetUuid().c_str(), overflowBelow);
-        params->m_staffAlignment->SetOverflowBelow(overflowBelow);
-        params->m_staffAlignment->AddBBoxBelow(current);
+        alignment->SetOverflowBelow(overflowBelow);
+        alignment->AddBBoxBelow(current);
     }
 
-    // do not go further down the tree in this case since the bounding box of the first element is already taken
-    // into
-    // account?
     return FUNCTOR_CONTINUE;
 }
 
@@ -1412,7 +1390,7 @@ int Object::SetOverflowBBoxesEnd(FunctorParams *functorParams)
     assert(params);
 
     // starting new layer
-    if (this->Is() == LAYER) {
+    if (this->Is(LAYER)) {
         Layer *currentLayer = dynamic_cast<Layer *>(this);
         assert(currentLayer);
         // set scoreDef attr

@@ -15,8 +15,7 @@
 
 namespace vrv {
 
-#define ledgermin(a, b) (((a) < (b)) ? (a) : (b))
-#define ledgermax(a, b) (((a) > (b)) ? (a) : (b))
+class StaffAlignment;
 
 //----------------------------------------------------------------------------
 // Chord
@@ -34,10 +33,12 @@ class Chord : public LayerElement,
               public DrawingListInterface,
               public StemmedDrawingInterface,
               public DurationInterface,
-              public AttCommon,
+              public AttColor,
+              public AttCue,
+              public AttGraced,
               public AttStems,
               public AttStemsCmn,
-              public AttTiepresent,
+              public AttTiePresent,
               public AttVisibility {
 public:
     /**
@@ -49,14 +50,19 @@ public:
     virtual ~Chord();
     virtual void Reset();
     virtual std::string GetClassName() const { return "Chord"; }
-    virtual ClassId Is() const { return CHORD; }
+    virtual ClassId GetClassId() const { return CHORD; }
     ///@}
 
+    /**
+     * @name Getter to interfaces
+     */
+    ///@{
     virtual DurationInterface *GetDurationInterface() { return dynamic_cast<DurationInterface *>(this); }
     virtual StemmedDrawingInterface *GetStemmedDrawingInterface()
     {
         return dynamic_cast<StemmedDrawingInterface *>(this);
     }
+    ///@}
 
     /** Override the method since alignment is required */
     virtual bool HasToBeAligned() const { return true; }
@@ -66,9 +72,36 @@ public:
      */
     virtual void AddChild(Object *object);
 
-    virtual void FilterList(ListOfObjects *childlist);
+    /**
+     * Return the maximum and minimum Y positions of the notes in the chord
+     */
+    void GetYExtremes(int &yMax, int &yMin);
 
-    void GetYExtremes(int *yMax, int *yMin);
+    /**
+     * Return the top or bottom note or their Y position
+     */
+    ///@{
+    Note *GetTopNote();
+    Note *GetBottomNote();
+    int GetYTop();
+    int GetYBottom();
+    ///@}
+
+    /**
+     * Return the cross staff above or below (if  any).
+     */
+    void GetCrossStaffExtremes(Staff *&staffAbove, Staff *&staffBelow);
+
+    /**
+     * Check if the part of a chord needs to be taken into account as overflow above or below in case of cross-staff
+     * chord.
+     */
+    void GetCrossStaffOverflows(LayerElement *element, StaffAlignment *alignment, bool &skipAbove, bool &skipBelow);
+
+    /**
+     * Return true if the chord has some cross staff notes.
+     */
+    bool HasCrossStaff();
 
     /**
      * Returns list of notes that have accidentals
@@ -84,30 +117,60 @@ public:
     ///@}
 
     /**
-     * Prepares a 2D grid of booleans to track where accidentals are placed.
-     * Further documentation is in chord.cpp comments.
-     */
-    void ResetAccidSpace(int fullUnit);
-
-    /**
-     * @name Set and get stem direction and stem positions
-     * The methods are overriding the interface because we want to apply it to child notes
+     * Get the stem up / stem down attachment point.
+     * If necessary look at the glyph anchor (if any).
      */
     ///@{
-    virtual void SetDrawingStemDir(data_STEMDIRECTION stemDir);
-    virtual void SetDrawingStemStart(Point stemStart);
-    virtual void SetDrawingStemEnd(Point stemEnd);
+    virtual Point GetStemUpSE(Doc *doc, int staffSize, bool isCueSize);
+    virtual Point GetStemDownNW(Doc *doc, int staffSize, bool isCueSize);
     ///@}
+
+    /**
+     * Check if the chord or one of its children is visible
+     */
+    bool IsVisible();
+
+    /**
+     * Return true if the chord has at least one note with a @dots > 0
+     */
+    bool HasNoteWithDots();
 
     //----------//
     // Functors //
     //----------//
 
     /**
-     * See Object::PrepareTieAttr
+     * See Object::ConvertAnalyticalMarkup
      */
-    virtual int PrepareTieAttr(FunctorParams *functorParams);
-    virtual int PrepareTieAttrEnd(FunctorParams *functorParams);
+    ///@{
+    virtual int ConvertAnalyticalMarkup(FunctorParams *functorParams);
+    virtual int ConvertAnalyticalMarkupEnd(FunctorParams *functorParams);
+    ///@}
+
+    /**
+     * See Object::CalcStem
+     */
+    virtual int CalcStem(FunctorParams *functorParams);
+
+    /**
+     * See Object::CalcDots
+     */
+    virtual int CalcDots(FunctorParams *functorParams);
+
+    /**
+     * See Object::PrepareLayerElementParts
+     */
+    virtual int PrepareLayerElementParts(FunctorParams *functorParams);
+
+    /**
+     * See Object::GenerateMIDIEnd
+     */
+    virtual int CalcOnsetOffsetEnd(FunctorParams *functorParams);
+
+    /**
+     * See Object::ResetDrawing
+     */
+    virtual int ResetDrawing(FunctorParams *functorParams);
 
 protected:
     /**
@@ -115,29 +178,18 @@ protected:
      */
     void ClearClusters() const;
 
+    /**
+     * Filter the flat list and keep only Note elements.
+     */
+    virtual void FilterList(ListOfObjects *childlist);
+
 public:
     mutable std::list<ChordCluster *> m_clusters;
-
-    /**
-     * Number of ledger lines for the chord where:
-     * Staff * is each staff for which the chord has notes and maps to:
-     * a four char vector acting as a 2D array (2x2) where:
-     * [0][x] is single-length, [1][x] is double-length
-     * [x][0] is below staff, [x][1] is above staff
-     */
-    MapOfLedgerLineFlags m_drawingLedgerLines;
 
     /**
      * Positions of dots in the chord to avoid overlapping
      */
     std::list<int> m_dots;
-
-    /**
-     * Variables related to preventing overlapping in the X dimension for accidentals
-     */
-    std::vector<Note *> m_accidList;
-    std::vector<std::vector<bool> > m_accidSpace;
-    int m_accidSpaceTop, m_accidSpaceBot, m_accidSpaceLeft;
 };
 
 } // namespace vrv

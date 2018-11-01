@@ -13,8 +13,8 @@
 
 //----------------------------------------------------------------------------
 
-#include "editorial.h"
 #include "controlelement.h"
+#include "editorial.h"
 #include "text.h"
 #include "vrv.h"
 
@@ -31,9 +31,7 @@ AnchoredText::AnchoredText() : ControlElement("anchtxt-"), TextDirInterface()
     Reset();
 }
 
-AnchoredText::~AnchoredText()
-{
-}
+AnchoredText::~AnchoredText() {}
 
 void AnchoredText::Reset()
 {
@@ -43,7 +41,7 @@ void AnchoredText::Reset()
 
 void AnchoredText::AddChild(Object *child)
 {
-    if (child->IsTextElement()) {
+    if (child->Is(TEXT)) {
         assert(dynamic_cast<TextElement *>(child));
     }
     else if (child->IsEditorialElement()) {
